@@ -24,11 +24,24 @@ export const PUBLIC_SUPABASE_PUBLISHABLE_KEY = required(
   env.PUBLIC_SUPABASE_PUBLISHABLE_KEY as string | undefined,
 );
 
-export const API_URL =
-  (env.PUBLIC_API_URL as string | undefined) ?? 'http://localhost:4000';
+/**
+ * Sin slash final: `apiFetch` arma cada llamada como `${API_URL}${path}` con
+ * `path` empezando siempre en `/`. Si la variable de entorno se configuró
+ * con un `/` de sobra (fácil de arrastrar al copiar la URL de Railway), la
+ * concatenación queda con doble slash y la API la devuelve como 404 — el
+ * router no la normaliza a la ruta real.
+ */
+function stripTrailingSlash(url: string): string {
+  return url.replace(/\/+$/, '');
+}
 
-export const SITE_URL =
-  (env.PUBLIC_SITE_URL as string | undefined) ?? 'http://localhost:4321';
+export const API_URL = stripTrailingSlash(
+  (env.PUBLIC_API_URL as string | undefined) ?? 'http://localhost:4000',
+);
+
+export const SITE_URL = stripTrailingSlash(
+  (env.PUBLIC_SITE_URL as string | undefined) ?? 'http://localhost:4321',
+);
 
 /**
  * Clave de Google Maps (Static Maps + Embed API). Opcional: si falta, los
