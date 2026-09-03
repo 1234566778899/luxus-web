@@ -22,6 +22,12 @@ interface Props {
 const { transparent = false, session = null, category, searchValue = '' } = Astro.props;
 const path = Astro.url.pathname;
 const isVerified = session?.profile.kyc_status === 'approved';
+// La navegación por categorías es un elemento propio del inicio: fuera de
+// ahí, un marketplace de lujo de referencia no la muestra en absoluto (ni
+// oculta, directamente no existe en el DOM) — cada página de colección
+// enseña el buscador en su lugar, y el resto de páginas no lleva ninguna
+// de las dos.
+const isHome = path === '/';
 ---
 
 <header
@@ -44,11 +50,23 @@ const isVerified = session?.profile.kyc_status === 'approved';
   ]}
   id="site-header"
 >
-  <!-- Fila 1: marca + sesión/acceso — como en la referencia, el login y el
-       CTA de solicitud viven arriba, separados de la navegación. -->
+  <!-- Fila 1: marca + buscador (en páginas de colección) + sesión/acceso —
+       como en la referencia, el buscador vive arriba junto al login y el
+       CTA de solicitud, no en una segunda fila. -->
   <div class="container-page">
     <div class="flex h-[72px] items-center justify-between gap-6">
       <Logo variant={transparent ? 'light' : 'dark'} size="md" reactive={transparent} />
+
+      {category && (
+        <div class="hidden flex-1 justify-center px-6 lg:flex">
+          <HeaderSearch
+            client:load
+            category={category}
+            initialValue={searchValue}
+            light={transparent}
+          />
+        </div>
+      )}
 
       <div class="flex items-center gap-4">
         {session ? (
@@ -105,42 +123,33 @@ const isVerified = session?.profile.kyc_status === 'approved';
     </div>
   </div>
 
-  <!-- Fila 2: navegación por categorías o buscador. Un hairline propio
-       arriba y abajo la enmarca — visible solo en escritorio, que es donde
-       esta segunda fila existe (en móvil la navegación vive en el menú). -->
-  <div
-    class:list={[
-      'hidden border-t lg:block',
-      transparent
-        ? 'border-white/20 group-data-[scrolled=true]/header:border-stone'
-        : 'border-stone',
-    ]}
-  >
-    <div class="container-page">
-      <div class="flex h-[52px] items-center">
-        {category ? (
-          <HeaderSearch
-            client:load
-            category={category}
-            initialValue={searchValue}
-            light={transparent}
-          />
-        ) : (
+  <!-- Fila 2: navegación por categorías, solo en el inicio — como en la
+       referencia, no existe en ninguna otra página (ni el buscador de
+       colección forma parte de esta fila: vive en la primera). Un hairline
+       propio arriba y abajo la enmarca; visible solo en escritorio, que es
+       donde esta segunda fila existe (en móvil la navegación vive en el
+       menú). -->
+  {isHome && (
+    <div
+      class:list={[
+        'hidden border-t lg:block',
+        transparent
+          ? 'border-white/20 group-data-[scrolled=true]/header:border-stone'
+          : 'border-stone',
+      ]}
+    >
+      <div class="container-page">
+        <div class="flex h-[52px] items-center">
           <nav aria-label="Categorías">
             <ul class="flex items-center gap-7">
               {CATEGORY_ORDER.map((cat) => {
                 const meta = CATEGORY_META[cat];
                 const href = `/collection/${cat}`;
-                const active = path.startsWith(href);
                 return (
                   <li>
                     <a
                       href={href}
-                      aria-current={active ? 'page' : undefined}
-                      class:list={[
-                        'link-underline text-[13.5px] transition-opacity',
-                        active ? 'opacity-100' : 'opacity-80 hover:opacity-100',
-                      ]}
+                      class="link-underline text-[13.5px] opacity-80 transition-opacity hover:opacity-100"
                     >
                       {meta.label}
                     </a>
@@ -150,20 +159,17 @@ const isVerified = session?.profile.kyc_status === 'approved';
               <li>
                 <a
                   href="/intelligence"
-                  class:list={[
-                    'link-underline text-[13.5px] transition-opacity',
-                    path.startsWith('/intelligence') ? 'opacity-100' : 'opacity-80 hover:opacity-100',
-                  ]}
+                  class="link-underline text-[13.5px] opacity-80 transition-opacity hover:opacity-100"
                 >
                   Intelligence
                 </a>
               </li>
             </ul>
           </nav>
-        )}
+        </div>
       </div>
     </div>
-  </div>
+  )}
 
   <!-- Menú móvil -->
   <div
