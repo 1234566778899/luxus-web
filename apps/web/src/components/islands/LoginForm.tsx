@@ -42,14 +42,20 @@ export default function LoginForm({ next }: Props) {
   const [challengeId, setChallengeId] = useState<string | null>(null);
   const [enrollQr, setEnrollQr] = useState<{ qr: string; secret: string } | null>(null);
 
-  const supabase = browserClient();
-
+  // `browserClient()` construye un cliente que solo puede vivir en el
+  // navegador (lee/escribe la sesión vía `document.cookie`). Astro
+  // server-renderiza el HTML inicial de esta isla antes de hidratarla, así
+  // que llamarlo aquí arriba —fuera de un manejador— lo ejecutaría también
+  // en el servidor y rompía la página con "Internal server error". Se llama
+  // dentro de cada función en su lugar; el propio `browserClient()` cachea
+  // la instancia, así que repetir la llamada no tiene costo real.
   async function signIn(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     setBusy(true);
     setError(null);
 
+    const supabase = browserClient();
     const { error: signInError } = await supabase.auth.signInWithPassword({
       email: String(form.get('email') ?? '').trim().toLowerCase(),
       password: String(form.get('password') ?? ''),
@@ -112,6 +118,7 @@ export default function LoginForm({ next }: Props) {
     setBusy(true);
     setError(null);
 
+    const supabase = browserClient();
     let currentChallenge = challengeId;
     if (!currentChallenge) {
       const { data: challenge, error: challengeError } =
@@ -223,7 +230,7 @@ export default function LoginForm({ next }: Props) {
         <button
           type="button"
           onClick={async () => {
-            await supabase.auth.signOut();
+            await browserClient().auth.signOut();
             setPhase('credentials');
             setError(null);
           }}
