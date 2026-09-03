@@ -6,7 +6,7 @@
   "engines": { "node": "20.x" },
   "scripts": {
     "dev": "astro dev --port 4321",
-    "build": "astro build",
+    "build": "npm run build --prefix ../../packages/shared && astro build",
     "preview": "astro preview",
     "typecheck": "astro check --minimumSeverity error"
   },
