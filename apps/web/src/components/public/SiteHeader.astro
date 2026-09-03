@@ -37,8 +37,9 @@ const isVerified = session?.profile.kyc_status === 'approved';
         // quede garantizado sin importar la página ni la foto: un degradado
         // dedicado en vez de depender del scrim de cada hero. El hairline
         // blanco de abajo imita el borde que separa las dos filas del
-        // encabezado de un marketplace de lujo de referencia.
-        'border-b border-white/20 bg-gradient-to-b from-ink-deep/80 via-ink-deep/40 to-transparent text-white data-[scrolled=true]:border-stone data-[scrolled=true]:bg-none data-[scrolled=true]:bg-white data-[scrolled=true]:text-ink'
+        // encabezado de un marketplace de lujo de referencia, que enmarca el
+        // encabezado con un hairline arriba y otro abajo.
+        'border-t border-b border-white/20 bg-gradient-to-b from-ink-deep/80 via-ink-deep/40 to-transparent text-white data-[scrolled=true]:border-t-transparent data-[scrolled=true]:border-b-stone data-[scrolled=true]:bg-none data-[scrolled=true]:bg-white data-[scrolled=true]:text-ink'
       : 'border-b border-stone bg-white text-ink',
   ]}
   id="site-header"

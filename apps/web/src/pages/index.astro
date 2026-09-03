@@ -19,12 +19,20 @@ const [featured, latest, counts, articles] = await Promise.all([
   fetchPublishedArticles(supabase, 3),
 ]);
 
-const hero = featured[0] ?? latest[0] ?? null;
-const heroImage = hero
-  ? coverUrl(hero.asset_media, hero.slug)
-  : 'https://picsum.photos/seed/luxus-peru-hero/2400/1400';
+// Hasta 3 activos destacados rotan en el hero; el resto de "Activos
+// destacados" más abajo arranca justo después de estos, para no repetir
+// la misma ficha en las dos secciones.
+const heroPool = featured.length > 0 ? featured : latest;
+const heroSlides = heroPool.slice(0, 3).map((asset) => ({
+  image: coverUrl(asset.asset_media, asset.slug),
+  title: asset.title,
+  location: formatApproximateLocation(asset),
+  href: `/asset/${asset.slug}`,
+}));
+const hero = heroSlides[0] ?? null;
+const heroImage = hero?.image ?? 'https://picsum.photos/seed/luxus-peru-hero/2400/1400';
 
-const featuredGrid = featured.slice(1, 4);
+const featuredGrid = featured.slice(heroSlides.length, heroSlides.length + 3);
 const offMarketCount = Object.values(counts).reduce((a, b) => a + b, 0);
 
 const jsonLd = {
@@ -52,18 +60,44 @@ const jsonLd = {
        pantalla completa, titular a la izquierda con una línea de cifras en
        versalitas debajo (en vez de párrafo + botones), controles de
        carrusel arriba a la derecha de esa línea, y la ficha del activo en
-       portada como leyenda en la esquina inferior derecha. -->
-  <section class="relative h-[85vh] min-h-[560px] w-full overflow-hidden bg-ink" aria-labelledby="hero-title">
-    <img
-      src={heroImage}
-      alt=""
-      aria-hidden="true"
-      fetchpriority="high"
-      decoding="async"
-      width={2400}
-      height={1400}
-      class="absolute inset-0 h-full w-full object-cover opacity-90"
-    />
+       portada como leyenda en la esquina inferior derecha. Las barras y
+       flechas rotan de verdad entre los activos destacados (`hero-carousel`
+       más abajo) — sin JS quedan en el primer activo, sin romper nada. -->
+  <section
+    id="hero-carousel"
+    class="relative h-[85vh] min-h-[560px] w-full overflow-hidden bg-ink"
+    aria-labelledby="hero-title"
+    data-index="0"
+  >
+    {heroSlides.map((slide, i) => (
+      <img
+        src={slide.image}
+        alt=""
+        aria-hidden="true"
+        fetchpriority={i === 0 ? 'high' : 'low'}
+        loading={i === 0 ? 'eager' : 'lazy'}
+        decoding="async"
+        width={2400}
+        height={1400}
+        data-hero-slide={i}
+        class:list={[
+          'absolute inset-0 h-full w-full object-cover opacity-90 transition-opacity duration-[900ms] ease-luxus',
+          i === 0 ? 'opacity-90' : 'opacity-0',
+        ]}
+      />
+    ))}
+    {heroSlides.length === 0 && (
+      <img
+        src={heroImage}
+        alt=""
+        aria-hidden="true"
+        fetchpriority="high"
+        decoding="async"
+        width={2400}
+        height={1400}
+        class="absolute inset-0 h-full w-full object-cover opacity-90"
+      />
+    )}
     <div class="absolute inset-0 scrim" aria-hidden="true"></div>
 
     <div class="container-page relative flex h-full flex-col justify-end pb-10 lg:pb-14">
@@ -82,33 +116,111 @@ const jsonLd = {
           Una búsqueda · {offMarketCount}+ activos · Miembros verificados · Perú
         </p>
 
-        <div class="flex items-center gap-4" aria-hidden="true">
-          <div class="flex items-center gap-1.5">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <span class:list={['h-[2px] w-6', i === 0 ? 'bg-white' : 'bg-white/30']} />
-            ))}
+        {heroSlides.length > 1 && (
+          <div class="flex items-center gap-4">
+            <div class="flex items-center gap-1.5" role="tablist" aria-label="Activos destacados">
+              {heroSlides.map((_, i) => (
+                <span
+                  data-hero-dash={i}
+                  class:list={['h-[2px] w-6 transition-colors duration-300', i === 0 ? 'bg-white' : 'bg-white/30']}
+                />
+              ))}
+            </div>
+            <div class="hidden items-center gap-2 sm:flex">
+              <button
+                type="button"
+                data-hero-prev
+                aria-label="Activo destacado anterior"
+                class="flex h-8 w-8 items-center justify-center rounded-full border border-white/30 text-white/70 transition-colors hover:border-white hover:text-white"
+              >
+                <svg class="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M9.5 3 L4.5 8 L9.5 13" stroke-linecap="square" /></svg>
+              </button>
+              <button
+                type="button"
+                data-hero-next
+                aria-label="Siguiente activo destacado"
+                class="flex h-8 w-8 items-center justify-center rounded-full border border-white/30 text-white/70 transition-colors hover:border-white hover:text-white"
+              >
+                <svg class="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M6.5 3 L11.5 8 L6.5 13" stroke-linecap="square" /></svg>
+              </button>
+            </div>
           </div>
-          <div class="hidden items-center gap-2 sm:flex">
-            <span class="flex h-8 w-8 items-center justify-center rounded-full border border-white/30 text-white/70">
-              <svg class="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M9.5 3 L4.5 8 L9.5 13" stroke-linecap="square" /></svg>
-            </span>
-            <span class="flex h-8 w-8 items-center justify-center rounded-full border border-white/30 text-white/70">
-              <svg class="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M6.5 3 L11.5 8 L6.5 13" stroke-linecap="square" /></svg>
-            </span>
-          </div>
-        </div>
+        )}
       </div>
 
       {hero && (
         <a
-          href={`/asset/${hero.slug}`}
+          data-hero-caption
+          href={hero.href}
           class="mt-4 inline-block self-end text-right text-[11px] uppercase tracking-[0.1em] text-white/60 transition-colors hover:text-white"
         >
-          {hero.title} · {formatApproximateLocation(hero)}
+          {hero.title} · {hero.location}
         </a>
       )}
     </div>
+
+    {heroSlides.length > 1 && (
+      <script
+        type="application/json"
+        id="hero-carousel-data"
+        set:html={JSON.stringify(heroSlides)}
+      />
+    )}
   </section>
+
+  <script>
+    // Rotación del hero: las barras/flechas ya existían en el markup pero
+    // sin nada que las conectara, así que "avanzar" no hacía nada. Los
+    // datos de cada slide viajan en el <script type="application/json">
+    // que Astro solo renderiza cuando hay más de un activo destacado.
+    const root = document.getElementById('hero-carousel');
+    const dataEl = document.getElementById('hero-carousel-data');
+    if (root && dataEl) {
+      const slides: { image: string; title: string; location: string; href: string }[] =
+        JSON.parse(dataEl.textContent ?? '[]');
+
+      const images = root.querySelectorAll<HTMLImageElement>('[data-hero-slide]');
+      const dashes = root.querySelectorAll<HTMLSpanElement>('[data-hero-dash]');
+      const caption = root.querySelector<HTMLAnchorElement>('[data-hero-caption]');
+      const prevBtn = root.querySelector<HTMLButtonElement>('[data-hero-prev]');
+      const nextBtn = root.querySelector<HTMLButtonElement>('[data-hero-next]');
+
+      let index = 0;
+      let timer: ReturnType<typeof setInterval> | null = null;
+
+      function render() {
+        images.forEach((img, i) => {
+          img.classList.toggle('opacity-90', i === index);
+          img.classList.toggle('opacity-0', i !== index);
+        });
+        dashes.forEach((dash, i) => {
+          dash.classList.toggle('bg-white', i === index);
+          dash.classList.toggle('bg-white/30', i !== index);
+        });
+        const slide = slides[index];
+        if (caption && slide) {
+          caption.href = slide.href;
+          caption.textContent = `${slide.title} · ${slide.location}`;
+        }
+        root!.dataset.index = String(index);
+      }
+
+      function go(next: number) {
+        index = (next + slides.length) % slides.length;
+        render();
+      }
+
+      function restartAutoplay() {
+        if (timer) clearInterval(timer);
+        timer = setInterval(() => go(index + 1), 7000);
+      }
+
+      prevBtn?.addEventListener('click', () => { go(index - 1); restartAutoplay(); });
+      nextBtn?.addEventListener('click', () => { go(index + 1); restartAutoplay(); });
+
+      restartAutoplay();
+    }
+  </script>
 
   <!-- ══════════════════════════════════════════════════ CATEGORÍAS -->
   <!-- Mismo seed de foto que usa la portada de cada colección
