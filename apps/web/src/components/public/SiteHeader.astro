@@ -29,7 +29,16 @@ const isVerified = session?.profile.kyc_status === 'approved';
   class:list={[
     'group/header sticky top-0 z-50 w-full transition-colors duration-500 ease-luxus',
     transparent
-      ? 'bg-transparent text-white data-[scrolled=true]:bg-white data-[scrolled=true]:text-ink data-[scrolled=true]:border-b data-[scrolled=true]:border-stone'
+      ? // Sobre una foto, el degradado propio del hero (`.scrim`/`.scrim-soft`)
+        // protege el pie de la imagen para la leyenda, pero deja la franja de
+        // arriba —donde vive este encabezado— a merced de lo clara que sea
+        // la foto ahí (ver, p. ej., ventanas o cielo claro detrás del nav).
+        // Se oscurece aquí, en el propio encabezado, para que el contraste
+        // quede garantizado sin importar la página ni la foto: un degradado
+        // dedicado en vez de depender del scrim de cada hero. El hairline
+        // blanco de abajo imita el borde que separa las dos filas del
+        // encabezado de un marketplace de lujo de referencia.
+        'border-b border-white/20 bg-gradient-to-b from-ink-deep/80 via-ink-deep/40 to-transparent text-white data-[scrolled=true]:border-stone data-[scrolled=true]:bg-none data-[scrolled=true]:bg-white data-[scrolled=true]:text-ink'
       : 'border-b border-stone bg-white text-ink',
   ]}
   id="site-header"
