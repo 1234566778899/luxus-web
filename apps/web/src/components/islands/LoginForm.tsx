@@ -56,7 +56,7 @@ export default function LoginForm({ next }: Props) {
     setError(null);
 
     const supabase = browserClient();
-    const { error: signInError } = await supabase.auth.signInWithPassword({
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
       email: String(form.get('email') ?? '').trim().toLowerCase(),
       password: String(form.get('password') ?? ''),
     });
@@ -69,6 +69,24 @@ export default function LoginForm({ next }: Props) {
           : signInError.message,
       );
       return;
+    }
+
+    // El equipo interno (admin) entra sin segundo factor: son cuentas
+    // operadas por LUXUS, no por el titular de un patrimonio, y ya viven
+    // detrás del acceso restringido al panel — el resto de roles (comprador,
+    // vendedor, bróker) lo sigue exigiendo. Nada en RLS depende del nivel
+    // AAL de la sesión; esto es puramente el gate del formulario de login.
+    if (signInData.user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', signInData.user.id)
+        .maybeSingle();
+
+      if (profile?.role === 'admin') {
+        window.location.href = next === '/dashboard' ? '/admin' : next;
+        return;
+      }
     }
 
     const { data: factors } = await supabase.auth.mfa.listFactors();
