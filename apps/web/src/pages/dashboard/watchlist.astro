@@ -1,0 +1,81 @@
+---
+import DashboardShell from '../../components/private/DashboardShell.astro';
+import { CATEGORY_META, formatDate, formatPriceRange } from '@luxus/shared';
+import type { AssetCategory } from '@luxus/shared';
+import { requireSession } from '../../lib/auth';
+
+const guard = requireSession(Astro);
+if (guard instanceof Response) return guard;
+const session = guard;
+
+const { data } = await Astro.locals.supabase
+  .from('watchlist')
+  .select(`
+    asset_id, note, created_at,
+    assets!watchlist_asset_id_fkey (
+      id, slug, title, headline, category, district, region,
+      price_min, price_max, price_on_request, visibility, status
+    )
+  `)
+  .order('created_at', { ascending: false });
+
+const items = data ?? [];
+---
+
+<DashboardShell title="Seguimiento" session={session} heading="Activos en seguimiento">
+  {items.length === 0 ? (
+    <div class="border border-stone bg-white p-12 text-center">
+      <p class="font-display text-[22px]">Su lista está vacía</p>
+      <p class="mx-auto mt-3 max-w-md text-[14px] leading-relaxed text-ink-muted">
+        Guarde activos desde su ficha para seguir su evolución y recibir avisos
+        cuando cambie su estado.
+      </p>
+      <a href="/collection/real-estate" class="btn-outline mt-8">Explorar colecciones</a>
+    </div>
+  ) : (
+    <ul class="divide-y divide-stone border border-stone bg-white">
+      {items.map((item) => {
+        const asset = item.assets as unknown as {
+          id: string; slug: string; title: string; headline: string | null;
+          category: AssetCategory; district: string | null; region: string | null;
+          price_min: number | null; price_max: number | null;
+          price_on_request: boolean; status: string;
+        } | null;
+        if (!asset) return null;
+
+        return (
+          <li class="p-6">
+            <div class="flex flex-wrap items-start justify-between gap-5">
+              <div class="min-w-0 flex-1">
+                <p class="text-[11px] uppercase tracking-luxus text-ink-muted">
+                  {CATEGORY_META[asset.category].label}
+                  {asset.status !== 'published' && (
+                    <span class="ml-2 text-gold-dark">· No disponible</span>
+                  )}
+                </p>
+                <p class="mt-2 font-display text-[20px] leading-snug">
+                  <a href={`/asset/${asset.slug}`} class="link-underline">{asset.title}</a>
+                </p>
+                <p class="mt-1.5 text-[13px] text-ink-muted">
+                  {[asset.district, asset.region].filter(Boolean).join(', ')}
+                </p>
+                {item.note && (
+                  <p class="mt-3 border-l-2 border-stone-dark pl-4 text-[13px] italic leading-relaxed text-ink-muted">
+                    {item.note}
+                  </p>
+                )}
+              </div>
+
+              <div class="shrink-0 text-right">
+                <p class="font-display text-[18px]">{formatPriceRange(asset)}</p>
+                <p class="mt-1.5 text-[11px] uppercase tracking-luxus text-ink-muted/70">
+                  Guardado {formatDate(item.created_at)}
+                </p>
+              </div>
+            </div>
+          </li>
+        );
+      })}
+    </ul>
+  )}
+</DashboardShell>

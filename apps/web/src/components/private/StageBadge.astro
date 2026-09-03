@@ -1,0 +1,28 @@
+---
+import type { DealStage } from '@luxus/shared';
+import { DEAL_STAGE_META, TERMINAL_DEAL_STAGES } from '@luxus/shared';
+
+interface Props {
+  stage: DealStage;
+  size?: 'sm' | 'md';
+}
+
+const { stage, size = 'sm' } = Astro.props;
+const meta = DEAL_STAGE_META[stage];
+const terminal = TERMINAL_DEAL_STAGES.includes(stage);
+const open = ['nda_signed', 'qa', 'offer', 'loi', 'due_diligence', 'closing'].includes(stage);
+---
+
+<span
+  class:list={[
+    'badge',
+    size === 'md' && 'px-3 py-1.5 text-[11px]',
+    stage === 'closed' ? 'border-ink bg-ink text-white'
+      : terminal ? 'border-stone-dark text-ink-muted'
+      : open ? 'border-gold text-gold-dark'
+      : 'border-ink/25 text-ink',
+  ]}
+  title={meta.description}
+>
+  {meta.label}
+</span>

@@ -1,0 +1,91 @@
+---
+import DashboardShell from '../../../components/private/DashboardShell.astro';
+import AssetWizard from '../../../components/islands/AssetWizard.tsx';
+import { requireRole } from '../../../lib/auth';
+
+const guard = requireRole(Astro, 'seller', 'broker', 'admin');
+if (guard instanceof Response) return guard;
+const session = guard;
+
+const { data: broker } = await Astro.locals.supabase
+  .from('brokers')
+  .select('id, listing_quota, is_verified')
+  .eq('user_id', session.userId)
+  .maybeSingle();
+---
+
+<DashboardShell title="Publicar activo" session={session}>
+  <div class="mb-8">
+    <nav aria-label="Migas de pan" class="mb-6">
+      <ol class="flex items-center gap-2 text-[11px] uppercase tracking-luxus text-ink-muted">
+        <li><a href="/dashboard/seller/assets" class="link-underline">Mis activos</a></li>
+        <li aria-hidden="true">·</li>
+        <li aria-current="page" class="text-ink">Nuevo</li>
+      </ol>
+    </nav>
+    <h1 class="font-display text-[32px] leading-tight">Publicar un activo</h1>
+    <p class="mt-3 max-w-2xl text-[15px] leading-relaxed text-ink-muted">
+      El activo se guarda como borrador. Cuando esté completo, envíelo a
+      verificación: nuestro equipo revisará la documentación registral antes de
+      publicarlo.
+    </p>
+  </div>
+
+  <div class="grid gap-8 xl:grid-cols-12">
+    <div class="xl:col-span-8">
+      <AssetWizard client:load brokerId={broker?.id ?? null} />
+    </div>
+
+    <aside class="xl:col-span-4">
+      <div class="space-y-6 xl:sticky xl:top-24">
+        <div class="border border-stone bg-white p-7">
+          <h2 class="text-eyebrow uppercase tracking-luxus text-ink-muted">Qué se publica y qué no</h2>
+          <dl class="mt-5 space-y-4 text-[13.5px] leading-relaxed">
+            <div>
+              <dt class="text-ink">Público</dt>
+              <dd class="mt-1 text-ink-muted">
+                Categoría, distrito, rango de precio, fotografías seleccionadas y
+                descripción general.
+              </dd>
+            </div>
+            <div>
+              <dt class="text-ink">Reservado</dt>
+              <dd class="mt-1 text-ink-muted">
+                Precio exacto, dirección, valorización, referencia registral y
+                material fotográfico adicional.
+              </dd>
+            </div>
+            <div>
+              <dt class="text-ink">Deal Room</dt>
+              <dd class="mt-1 text-ink-muted">
+                Documentación completa, con permisos por archivo que usted
+                controla y que vencen en la fecha que fije.
+              </dd>
+            </div>
+          </dl>
+        </div>
+
+        {broker && (
+          <div class="border border-stone bg-white p-7">
+            <h2 class="text-eyebrow uppercase tracking-luxus text-ink-muted">Su plan</h2>
+            <p class="mt-4 text-[14px] leading-relaxed text-ink-muted">
+              {broker.listing_quota > 0
+                ? `Puede mantener hasta ${broker.listing_quota} activos publicados simultáneamente.`
+                : 'Su plan permite activos ilimitados.'}
+            </p>
+            {broker.is_verified && (
+              <span class="badge mt-4 border-gold text-gold-dark">Luxus Verified</span>
+            )}
+          </div>
+        )}
+
+        <div class="border border-gold bg-white p-7">
+          <p class="text-[12.5px] leading-relaxed text-ink-muted">
+            La tarifa de publicación se cotiza al aprobarse la verificación, no
+            al crear el borrador.
+          </p>
+        </div>
+      </div>
+    </aside>
+  </div>
+</DashboardShell>

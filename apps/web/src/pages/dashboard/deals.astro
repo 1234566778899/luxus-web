@@ -1,0 +1,151 @@
+---
+import DashboardShell from '../../components/private/DashboardShell.astro';
+import StageBadge from '../../components/private/StageBadge.astro';
+import {
+  DEAL_STAGE_META, TERMINAL_DEAL_STAGES, formatDate, formatRelative,
+} from '@luxus/shared';
+import type { DealStage } from '@luxus/shared';
+import { requireSession } from '../../lib/auth';
+
+const guard = requireSession(Astro);
+if (guard instanceof Response) return guard;
+const session = guard;
+
+const { data } = await Astro.locals.supabase
+  .from('deals')
+  .select(`
+    id, reference_code, stage, stage_changed_at, requested_at, expires_at,
+    buyer_id, seller_id, nda_signed_at,
+    assets!deals_asset_id_fkey (title, slug, category, district, region, reference_code)
+  `)
+  .order('stage_changed_at', { ascending: false });
+
+const deals = data ?? [];
+const active = deals.filter((d) => !TERMINAL_DEAL_STAGES.includes(d.stage as DealStage));
+const closed = deals.filter((d) => TERMINAL_DEAL_STAGES.includes(d.stage as DealStage));
+
+type DealRow = (typeof deals)[number];
+
+function assetOf(deal: DealRow) {
+  return deal.assets as unknown as {
+    title: string; slug: string; district: string | null;
+    region: string | null; reference_code: string;
+  } | null;
+}
+---
+
+<DashboardShell title="Deal Rooms" session={session} heading="Deal Rooms">
+  {deals.length === 0 ? (
+    <div class="border border-stone bg-white p-12 text-center">
+      <p class="font-display text-[22px]">Sin Deal Rooms</p>
+      <p class="mx-auto mt-3 max-w-md text-[14px] leading-relaxed text-ink-muted">
+        Los Deal Rooms se abren tras la aprobación del vendedor y la firma del
+        acuerdo de confidencialidad.
+      </p>
+      <a href="/collection/real-estate" class="btn-outline mt-8">Explorar colecciones</a>
+    </div>
+  ) : (
+    <div class="space-y-12">
+      <section aria-labelledby="active-title">
+        <h2 id="active-title" class="font-display text-[24px]">
+          En curso <span class="ml-2 text-[15px] text-ink-muted">({active.length})</span>
+        </h2>
+
+        {active.length === 0 ? (
+          <p class="mt-5 border border-stone bg-white p-8 text-[14px] text-ink-muted">
+            No tiene operaciones en curso.
+          </p>
+        ) : (
+          <ul class="mt-5 divide-y divide-stone border border-stone bg-white">
+            {active.map((deal) => {
+              const asset = assetOf(deal);
+              const meta = DEAL_STAGE_META[deal.stage as DealStage];
+              const role = deal.buyer_id === session.userId ? 'Comprador' : 'Vendedor';
+              const daysLeft = deal.expires_at
+                ? Math.ceil((new Date(deal.expires_at).getTime() - Date.now()) / 86_400_000)
+                : null;
+
+              return (
+                <li>
+                  <a href={`/deal/${deal.id}`} class="block p-6 transition-colors hover:bg-ivory">
+                    <div class="flex flex-wrap items-start justify-between gap-5">
+                      <div class="min-w-0 flex-1">
+                        <div class="flex flex-wrap items-center gap-3">
+                          <span class="text-[11px] uppercase tracking-luxus text-ink-muted">
+                            {deal.reference_code}
+                          </span>
+                          <StageBadge stage={deal.stage as DealStage} />
+                          <span class="text-[10px] uppercase tracking-luxus text-ink-muted/60">
+                            {role}
+                          </span>
+                        </div>
+
+                        <p class="mt-2.5 font-display text-[20px] leading-snug">
+                          {asset?.title ?? 'Activo retirado'}
+                        </p>
+                        <p class="mt-1.5 text-[13px] text-ink-muted">
+                          {[asset?.district, asset?.region].filter(Boolean).join(', ')}
+                        </p>
+                        <p class="mt-2.5 max-w-2xl text-[12.5px] leading-relaxed text-ink-muted">
+                          {meta.description}
+                        </p>
+                      </div>
+
+                      <dl class="shrink-0 space-y-1.5 text-right text-[12px]">
+                        <div>
+                          <dt class="sr-only">Última actividad</dt>
+                          <dd class="text-ink-muted">{formatRelative(deal.stage_changed_at)}</dd>
+                        </div>
+                        {deal.nda_signed_at && (
+                          <div>
+                            <dt class="sr-only">NDA firmado</dt>
+                            <dd class="text-ink-muted/70">NDA {formatDate(deal.nda_signed_at)}</dd>
+                          </div>
+                        )}
+                        {daysLeft !== null && (
+                          <div>
+                            <dt class="sr-only">Vencimiento</dt>
+                            <dd class:list={[daysLeft <= 14 ? 'text-gold-dark' : 'text-ink-muted/70']}>
+                              {daysLeft > 0 ? `Vence en ${daysLeft} d` : 'Vencido'}
+                            </dd>
+                          </div>
+                        )}
+                      </dl>
+                    </div>
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
+      {closed.length > 0 && (
+        <section aria-labelledby="closed-title">
+          <h2 id="closed-title" class="font-display text-[24px]">
+            Concluidos <span class="ml-2 text-[15px] text-ink-muted">({closed.length})</span>
+          </h2>
+
+          <ul class="mt-5 divide-y divide-stone border border-stone bg-white">
+            {closed.map((deal) => {
+              const asset = assetOf(deal);
+              return (
+                <li>
+                  <a href={`/deal/${deal.id}`} class="flex flex-wrap items-center justify-between gap-4 p-5 transition-colors hover:bg-ivory">
+                    <div class="min-w-0">
+                      <p class="text-[15px]">{asset?.title ?? 'Activo retirado'}</p>
+                      <p class="mt-1 text-[12px] text-ink-muted">
+                        {deal.reference_code} · {formatDate(deal.stage_changed_at)}
+                      </p>
+                    </div>
+                    <StageBadge stage={deal.stage as DealStage} />
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+    </div>
+  )}
+</DashboardShell>

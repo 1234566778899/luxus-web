@@ -1,0 +1,103 @@
+---
+import type { AssetCategory } from '@luxus/shared';
+import { PERU_REGIONS, PRICE_BANDS } from '@luxus/shared';
+
+interface Props {
+  category: AssetCategory;
+  title: string;
+  tagline: string;
+  total: number;
+  currentRegion?: string;
+  currentBand?: string;
+}
+
+const { category, title, tagline, total, currentRegion, currentBand } = Astro.props;
+
+// Foto de portada estable por categoría — placeholder determinista mientras
+// no exista producción fotográfica propia por colección.
+const heroImage = `https://picsum.photos/seed/luxus-collection-${category}/2000/1000`;
+---
+
+<section class="relative overflow-hidden bg-ink" aria-labelledby="collection-hero-title">
+  <img
+    src={heroImage}
+    alt=""
+    aria-hidden="true"
+    fetchpriority="high"
+    decoding="async"
+    width={2000}
+    height={1000}
+    class="absolute inset-0 h-full w-full object-cover opacity-70"
+  />
+  <div class="absolute inset-0 bg-ink/[45%]" aria-hidden="true"></div>
+
+  <div class="container-page relative py-24 lg:py-32">
+    <div class="mx-auto max-w-2xl text-center">
+      <h1 id="collection-hero-title" class="font-display text-[38px] leading-tight text-white sm:text-[50px]">
+        {title}
+      </h1>
+      <p class="mt-4 text-[15px] leading-relaxed text-white/70">{tagline}</p>
+
+      <!-- Búsqueda rápida: GET plano, sin JS. Sustituye el rango de precio por
+           un tramo predefinido — el filtro fino sigue disponible más abajo. -->
+      <form
+        method="GET"
+        action={`/collection/${category}`}
+        class="mt-10 flex flex-col gap-2 bg-white p-2 text-left shadow-xl sm:flex-row sm:items-center"
+      >
+        <label class="flex-1 px-3 py-2.5">
+          <span class="block text-[10px] uppercase tracking-luxus text-ink-muted">Región</span>
+          <select
+            name="region"
+            class="w-full border-0 bg-transparent p-0 text-[14px] text-ink focus:outline-none focus:ring-0"
+          >
+            <option value="">Todo el Perú</option>
+            {PERU_REGIONS.map((region) => (
+              <option value={region} selected={region === currentRegion}>{region}</option>
+            ))}
+          </select>
+        </label>
+
+        <div class="hidden h-9 w-px bg-stone sm:block" aria-hidden="true"></div>
+
+        <label class="flex-1 px-3 py-2.5 sm:border-l sm:border-stone">
+          <span class="block text-[10px] uppercase tracking-luxus text-ink-muted">Rango de precio</span>
+          <select
+            name="band"
+            class="w-full border-0 bg-transparent p-0 text-[14px] text-ink focus:outline-none focus:ring-0"
+          >
+            <option value="">Cualquier rango</option>
+            {PRICE_BANDS.map((band) => (
+              <option value={band.key} selected={band.key === currentBand}>{band.label}</option>
+            ))}
+          </select>
+        </label>
+
+        <button type="submit" class="btn-primary shrink-0 px-8 py-3.5">
+          Buscar
+        </button>
+      </form>
+
+      <p class="mt-6 text-[11px] uppercase tracking-luxus text-white/50">
+        {total} {total === 1 ? 'activo publicado' : 'activos publicados'} · Verificado · Confidencial
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- Franja de confianza, al estilo de la barra de socios de un marketplace de
+     referencia — adaptada a los cuatro compromisos propios de LUXUS. -->
+<div class="border-b border-stone bg-ivory">
+  <div class="container-page">
+    <ul class="flex flex-wrap items-center justify-center gap-x-10 gap-y-3 py-5 text-[11px] uppercase tracking-luxus text-ink-muted">
+      {['Verified', 'Confidential', 'Curated', 'Secure'].map((word) => (
+        <li class="flex items-center gap-2">
+          <svg class="h-3 w-3 text-gold-dark" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+            <path d="M2 6.5 L4.5 9 L10 3" stroke-linecap="square" />
+          </svg>
+          {word}
+        </li>
+      ))}
+    </ul>
+  </div>
+</div>

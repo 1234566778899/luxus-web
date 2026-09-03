@@ -1,0 +1,196 @@
+---
+import LegalLayout from '../../layouts/LegalLayout.astro';
+import { BRAND } from '@luxus/shared';
+
+const sections = [
+  { id: 'titular', label: 'Titular del banco de datos' },
+  { id: 'datos', label: 'Datos que tratamos' },
+  { id: 'finalidades', label: 'Finalidades del tratamiento' },
+  { id: 'consentimiento', label: 'Consentimiento' },
+  { id: 'transferencias', label: 'Transferencias y encargados' },
+  { id: 'conservacion', label: 'Plazo de conservación' },
+  { id: 'seguridad', label: 'Medidas de seguridad' },
+  { id: 'derechos', label: 'Derechos ARCO' },
+  { id: 'cookies', label: 'Cookies y trazabilidad' },
+  { id: 'cambios', label: 'Cambios en esta política' },
+];
+---
+
+<LegalLayout
+  title="Política de Privacidad"
+  description="Cómo LUXUS PERÚ S.A.C. trata los datos personales conforme a la Ley 29733, Ley de Protección de Datos Personales del Perú."
+  updated="2 de septiembre de 2026"
+  sections={sections}
+>
+  <p>
+    Esta política describe el tratamiento de datos personales que realiza
+    {' '}{BRAND.legalName} (en adelante, «LUXUS PERÚ») a través de la plataforma
+    luxusperu.com, conforme a la <strong>Ley N.º 29733, Ley de Protección de Datos
+    Personales</strong>, su Reglamento aprobado por Decreto Supremo N.º 003-2013-JUS
+    y las directivas de la Autoridad Nacional de Protección de Datos Personales.
+  </p>
+
+  <h2 id="titular">1. Titular del banco de datos</h2>
+  <p>
+    {BRAND.legalName}, con RUC {BRAND.ruc} y domicilio en {BRAND.address}, es
+    titular de los bancos de datos personales inscritos ante la Autoridad
+    Nacional de Protección de Datos Personales del Ministerio de Justicia y
+    Derechos Humanos.
+  </p>
+  <p>
+    Contacto del responsable de protección de datos:{' '}
+    <a href="mailto:privacidad@luxusperu.com">privacidad@luxusperu.com</a>.
+  </p>
+
+  <h2 id="datos">2. Datos que tratamos</h2>
+  <p>Según su relación con la plataforma, tratamos las siguientes categorías:</p>
+  <ul>
+    <li>
+      <strong>Datos de identificación:</strong> nombres y apellidos, tipo y número
+      de documento (DNI, carné de extranjería o pasaporte), nacionalidad, fecha de
+      nacimiento e imagen del documento.
+    </li>
+    <li>
+      <strong>Datos de contacto:</strong> correo electrónico, teléfono, ciudad y
+      país de residencia, empresa o family office.
+    </li>
+    <li>
+      <strong>Datos económicos y financieros:</strong> declaración de origen de
+      fondos y patrimonio, rango de patrimonio estimado, capacidad de inversión y
+      documentación de respaldo aportada voluntariamente.
+    </li>
+    <li>
+      <strong>Datos de cumplimiento:</strong> condición de persona expuesta
+      políticamente (PEP), resultados de consultas en listas de sanciones y de
+      medios adversos.
+    </li>
+    <li>
+      <strong>Datos de navegación y trazabilidad:</strong> dirección IP, agente de
+      usuario, registro de sesiones, y el registro de auditoría de cada
+      visualización o descarga de documentos dentro del Deal Room.
+    </li>
+    <li>
+      <strong>Datos transaccionales:</strong> historial de solicitudes, acuerdos
+      de confidencialidad firmados, ofertas presentadas y pagos realizados.
+    </li>
+  </ul>
+  <p>
+    Los datos de cumplimiento y los relativos a situación económica constituyen
+    <strong>datos sensibles</strong> en determinados supuestos, y son tratados con
+    consentimiento expreso y medidas de seguridad reforzadas.
+  </p>
+
+  <h2 id="finalidades">3. Finalidades del tratamiento</h2>
+  <ul>
+    <li>Evaluar solicitudes de admisión a la plataforma.</li>
+    <li>
+      Cumplir las obligaciones de debida diligencia del conocimiento del cliente
+      y de prevención del lavado de activos y del financiamiento del terrorismo.
+    </li>
+    <li>
+      Habilitar el acceso escalonado a información: nivel público, nivel de
+      miembro verificado y nivel de Deal Room.
+    </li>
+    <li>Gestionar acuerdos de confidencialidad, ofertas y cartas de intención.</li>
+    <li>
+      Registrar la trazabilidad de accesos documentales y aplicar marcas de agua
+      identificativas, como medida de seguridad y prueba ante divulgaciones no
+      autorizadas.
+    </li>
+    <li>Gestionar membresías, suscripciones, cobros y comprobantes.</li>
+    <li>Enviar comunicaciones transaccionales del servicio.</li>
+    <li>Atender requerimientos de autoridad competente.</li>
+  </ul>
+
+  <h2 id="consentimiento">4. Consentimiento</h2>
+  <p>
+    El tratamiento se sustenta en el consentimiento libre, previo, expreso,
+    informado e inequívoco que usted otorga al enviar una solicitud de acceso o
+    al registrarse. Puede revocarlo en cualquier momento, sin efecto retroactivo
+    y sin perjuicio de los tratamientos que resulten obligatorios por mandato
+    legal o necesarios para la ejecución de una relación contractual vigente.
+  </p>
+
+  <h2 id="transferencias">5. Transferencias y encargados de tratamiento</h2>
+  <p>
+    LUXUS PERÚ no vende ni cede datos personales con fines comerciales. Para
+    prestar el servicio recurrimos a encargados de tratamiento que actúan bajo
+    contrato y con obligaciones de confidencialidad y seguridad equivalentes:
+  </p>
+  <ul>
+    <li>Proveedor de infraestructura de base de datos y almacenamiento.</li>
+    <li>Proveedor de verificación de identidad.</li>
+    <li>Proveedor de consulta de listas de sanciones y medios adversos.</li>
+    <li>Proveedor de firma electrónica.</li>
+    <li>Proveedor de procesamiento de pagos.</li>
+    <li>Proveedor de correo transaccional.</li>
+  </ul>
+  <p>
+    Algunos encargados se ubican fuera del territorio nacional, por lo que puede
+    producirse un <strong>flujo transfronterizo de datos personales</strong>. En esos
+    casos exigimos niveles de protección adecuados mediante cláusulas
+    contractuales, conforme al artículo 15 de la Ley 29733. Al aceptar esta
+    política usted presta su consentimiento para dicho flujo.
+  </p>
+  <p>
+    Dentro de un Deal Room, sus datos de identificación se comparten con la
+    contraparte de la operación en la medida estrictamente necesaria para
+    ejecutar el acuerdo de confidencialidad y conducir la negociación.
+  </p>
+
+  <h2 id="conservacion">6. Plazo de conservación</h2>
+  <p>
+    Los datos se conservan mientras dure la relación con la plataforma. Una vez
+    concluida, se mantienen bloqueados durante los plazos de prescripción
+    aplicables y, en el caso de la documentación de debida diligencia y los
+    registros de auditoría, durante el plazo exigido por la normativa de
+    prevención del lavado de activos, tras el cual se eliminan de forma segura.
+  </p>
+
+  <h2 id="seguridad">7. Medidas de seguridad</h2>
+  <p>
+    Aplicamos medidas técnicas, organizativas y legales para garantizar la
+    confidencialidad, integridad y disponibilidad de los datos:
+  </p>
+  <ul>
+    <li>Cifrado en tránsito y en reposo.</li>
+    <li>
+      Control de acceso a nivel de fila en la base de datos, de modo que cada
+      usuario solo puede leer aquello a lo que tiene derecho.
+    </li>
+    <li>Autenticación en dos pasos obligatoria en la zona privada.</li>
+    <li>Almacenamiento de documentación en repositorios privados, servidos únicamente mediante enlaces firmados de vigencia limitada.</li>
+    <li>Marca de agua dinámica y registro de auditoría de cada acceso documental.</li>
+    <li>Permisos documentales con fecha de vencimiento y revocación automática.</li>
+  </ul>
+
+  <h2 id="derechos">8. Derechos de acceso, rectificación, cancelación y oposición</h2>
+  <p>
+    Usted puede ejercer sus derechos ARCO, así como los de información,
+    tratamiento objetivo y revocación del consentimiento, dirigiendo una
+    solicitud a{' '}
+    <a href="mailto:privacidad@luxusperu.com">privacidad@luxusperu.com</a>{' '}
+    o al domicilio indicado, adjuntando copia de su documento de identidad.
+  </p>
+  <p>
+    Atenderemos su solicitud en los plazos legales: veinte días para el derecho
+    de acceso y diez días para los de rectificación, cancelación y oposición,
+    contados desde la recepción. Si considera que su solicitud no fue atendida,
+    puede presentar reclamo ante la Autoridad Nacional de Protección de Datos
+    Personales.
+  </p>
+
+  <h2 id="cookies">9. Cookies y trazabilidad</h2>
+  <p>
+    Utilizamos cookies estrictamente necesarias para mantener la sesión iniciada
+    y garantizar la seguridad del acceso. No empleamos cookies publicitarias ni
+    de perfilado con terceros. El detalle se encuentra en nuestra{' '}
+    <a href="/legal/cookies">política de cookies</a>.
+  </p>
+
+  <h2 id="cambios">10. Cambios en esta política</h2>
+  <p>
+    Cualquier modificación sustancial será comunicada por correo electrónico a
+    los usuarios registrados con antelación razonable a su entrada en vigor.
+  </p>
+</LegalLayout>

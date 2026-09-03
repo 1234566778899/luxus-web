@@ -1,0 +1,366 @@
+---
+import DashboardShell from '../../components/private/DashboardShell.astro';
+import StageBadge from '../../components/private/StageBadge.astro';
+import DealDocuments from '../../components/islands/DealDocuments.tsx';
+import DealQA from '../../components/islands/DealQA.tsx';
+import DealOffers from '../../components/islands/DealOffers.tsx';
+import NdaPanel from '../../components/islands/NdaPanel.tsx';
+import DealClosing from '../../components/islands/DealClosing.tsx';
+import {
+  CATEGORY_META, DEAL_STAGE_META, TERMINAL_DEAL_STAGES, formatDate, formatDateTime,
+  formatPriceRange, formatUsd,
+} from '@luxus/shared';
+import type { AssetCategory, DealStage } from '@luxus/shared';
+import { requireSession } from '../../lib/auth';
+import { apiFetch } from '../../lib/api';
+
+const guard = requireSession(Astro);
+if (guard instanceof Response) return guard;
+const session = guard;
+
+const { id } = Astro.params;
+if (!id) return Astro.redirect('/dashboard/deals', 302);
+
+// El detalle completo lo arma la API: cruza permisos, NDA y versiones, y
+// recorta el árbol documental según a qué tiene derecho quien pregunta.
+interface DealDetail {
+  deal: {
+    id: string; reference_code: string; stage: DealStage; expires_at: string | null;
+    requested_at: string; nda_signed_at: string | null; request_message: string | null;
+    intended_use: string | null; financing_type: string | null;
+    closing_checklist: unknown; closing_notes: string | null;
+    final_amount: number | null; success_fee_pct: number | null;
+    success_fee_amount: number | null; buyer_id: string; seller_id: string;
+  };
+  asset: {
+    id: string; slug: string; title: string; category: AssetCategory;
+    district: string | null; region: string | null; reference_code: string;
+    price_min: number | null; price_max: number | null; price_on_request: boolean;
+  };
+  side: 'buyer' | 'seller' | 'broker' | 'admin';
+  roomOpen: boolean;
+  buyer: { id: string; full_name: string | null; email: string } | null;
+  seller: { id: string; full_name: string | null; email: string } | null;
+  nda: {
+    id: string; status: string; signed_at: string | null; signed_sha256: string | null;
+    sent_at: string | null; expires_at: string | null; template_version: string;
+  } | null;
+  offers: never[];
+  threads: never[];
+  history: { id: number; from_stage: string | null; to_stage: string; created_at: string; reason: string | null }[];
+  tree: never[];
+}
+
+let detail: DealDetail;
+try {
+  detail = await apiFetch<DealDetail>(`/v1/deals/${id}`, { token: session.accessToken });
+} catch {
+  return new Response(null, { status: 404, statusText: 'Not found' });
+}
+
+const { deal, asset, side, roomOpen, buyer, seller, nda, offers, threads, history, tree } = detail;
+const meta = DEAL_STAGE_META[deal.stage];
+const isSellerSide = side === 'seller' || side === 'broker' || side === 'admin';
+const counterpart = side === 'buyer' ? seller : buyer;
+const terminal = TERMINAL_DEAL_STAGES.includes(deal.stage);
+
+const daysLeft = deal.expires_at
+  ? Math.ceil((new Date(deal.expires_at).getTime() - Date.now()) / 86_400_000)
+  : null;
+
+// Línea de tiempo del flujo, con la etapa actual resaltada.
+const FLOW: DealStage[] = [
+  'requested', 'kyc_review', 'seller_review', 'nda_pending', 'nda_signed',
+  'qa', 'offer', 'loi', 'due_diligence', 'closing', 'closed',
+];
+const currentStep = meta.step;
+
+// Auditoría: solo el lado vendedor la consulta.
+let auditEntries: {
+  id: number; action: string; actor_email: string | null; created_at: string;
+  ip_address: string | null; metadata: Record<string, unknown>;
+}[] = [];
+
+if (isSellerSide) {
+  try {
+    const audit = await apiFetch<{ entries: typeof auditEntries }>(
+      `/v1/deals/${deal.id}/audit?limit=40`,
+      { token: session.accessToken },
+    );
+    auditEntries = audit.entries;
+  } catch {
+    auditEntries = [];
+  }
+}
+---
+
+<DashboardShell title={`Deal Room · ${asset.title}`} session={session}>
+  <!-- Cabecera -->
+  <div class="mb-8">
+    <nav aria-label="Migas de pan" class="mb-6">
+      <ol class="flex items-center gap-2 text-[11px] uppercase tracking-luxus text-ink-muted">
+        <li><a href="/dashboard/deals" class="link-underline">Deal Rooms</a></li>
+        <li aria-hidden="true">·</li>
+        <li aria-current="page" class="text-ink">{deal.reference_code}</li>
+      </ol>
+    </nav>
+
+    <div class="flex flex-wrap items-start justify-between gap-6">
+      <div class="min-w-0">
+        <div class="flex flex-wrap items-center gap-3">
+          <StageBadge stage={deal.stage} size="md" />
+          <span class="text-[11px] uppercase tracking-luxus text-ink-muted">
+            {CATEGORY_META[asset.category].label} · {asset.reference_code}
+          </span>
+          <span class="text-[10px] uppercase tracking-luxus text-ink-muted/60">
+            {side === 'buyer' ? 'Usted es el comprador' : 'Usted es el vendedor'}
+          </span>
+        </div>
+
+        <h1 class="mt-3 font-display text-[32px] leading-tight">{asset.title}</h1>
+
+        <p class="mt-2 text-[14px] text-ink-muted">
+          {[asset.district, asset.region].filter(Boolean).join(', ')} ·{' '}
+          {formatPriceRange(asset)}
+        </p>
+      </div>
+
+      <div class="shrink-0 text-right">
+        {counterpart && (
+          <>
+            <p class="text-[11px] uppercase tracking-luxus text-ink-muted">Contraparte</p>
+            <p class="mt-1.5 text-[15px]">{counterpart.full_name ?? counterpart.email}</p>
+          </>
+        )}
+        {daysLeft !== null && (
+          <p class:list={[
+            'mt-3 text-[12px] uppercase tracking-luxus',
+            daysLeft > 14 ? 'text-ink-muted' : 'text-gold-dark',
+          ]}>
+            {daysLeft > 0 ? `Acceso vence en ${daysLeft} días` : 'Acceso vencido'}
+          </p>
+        )}
+      </div>
+    </div>
+  </div>
+
+  <!-- Línea de tiempo -->
+  <section class="mb-10 border border-stone bg-white p-6" aria-labelledby="flow-title">
+    <h2 id="flow-title" class="sr-only">Progreso de la operación</h2>
+
+    <ol class="flex gap-1 overflow-x-auto no-scrollbar">
+      {FLOW.map((stage) => {
+        const stageMeta = DEAL_STAGE_META[stage];
+        const done = currentStep > stageMeta.step && currentStep > 0;
+        const active = stage === deal.stage;
+        return (
+          <li class="min-w-[92px] flex-1">
+            <div class:list={[
+              'h-0.5 w-full',
+              active ? 'bg-gold' : done ? 'bg-ink' : 'bg-stone',
+            ]} />
+            <p class:list={[
+              'mt-2.5 text-[10px] uppercase leading-tight tracking-luxus',
+              active ? 'text-ink' : done ? 'text-ink-muted' : 'text-ink-muted/[45%]',
+            ]}>
+              {stageMeta.label}
+            </p>
+          </li>
+        );
+      })}
+    </ol>
+
+    <p class="mt-5 border-t border-stone pt-4 text-[13.5px] leading-relaxed text-ink-muted">
+      {terminal ? meta.description : `${meta.description} `}
+      {!terminal && meta.actor !== 'none' && (
+        <span class="text-ink">
+          Corresponde actuar a{' '}
+          {meta.actor === 'buyer' ? 'el comprador'
+            : meta.actor === 'seller' ? 'el vendedor'
+            : meta.actor === 'platform' ? 'LUXUS'
+            : 'ambas partes'}.
+        </span>
+      )}
+    </p>
+  </section>
+
+  <div class="grid gap-10 xl:grid-cols-12">
+    <div class="space-y-12 xl:col-span-8">
+      <!-- Documentos -->
+      <section id="documents" aria-labelledby="docs-title">
+        <h2 id="docs-title" class="mb-4 font-display text-[24px]">Documentación</h2>
+        <DealDocuments
+          client:load
+          dealId={deal.id}
+          buyerId={deal.buyer_id}
+          tree={tree}
+          isSellerSide={isSellerSide}
+          roomOpen={roomOpen}
+        />
+      </section>
+
+      <!-- Q&A -->
+      <section id="qa" aria-labelledby="qa-title">
+        <h2 id="qa-title" class="mb-4 font-display text-[24px]">Preguntas y respuestas</h2>
+        <DealQA
+          client:visible
+          dealId={deal.id}
+          userId={session.userId}
+          counterpartName={counterpart?.full_name ?? counterpart?.email ?? 'la contraparte'}
+          threads={threads}
+          roomOpen={roomOpen}
+        />
+      </section>
+
+      <!-- Ofertas -->
+      <section id="offers" aria-labelledby="offers-title">
+        <h2 id="offers-title" class="mb-4 font-display text-[24px]">Ofertas</h2>
+        <DealOffers
+          client:visible
+          dealId={deal.id}
+          userId={session.userId}
+          offers={offers}
+          side={side}
+          roomOpen={roomOpen}
+        />
+      </section>
+
+      <!-- Cierre -->
+      {['loi', 'due_diligence', 'closing', 'closed'].includes(deal.stage) && (
+        <section id="closing" aria-labelledby="closing-title">
+          <h2 id="closing-title" class="mb-4 font-display text-[24px]">Cierre</h2>
+          <DealClosing
+            client:visible
+            dealId={deal.id}
+            checklist={deal.closing_checklist as never}
+            notes={deal.closing_notes}
+            finalAmount={deal.final_amount}
+            successFeePct={deal.success_fee_pct}
+            successFeeAmount={deal.success_fee_amount}
+            canEdit={isSellerSide}
+          />
+        </section>
+      )}
+
+      <!-- Auditoría (vendedor) -->
+      {isSellerSide && auditEntries.length > 0 && (
+        <section id="audit" aria-labelledby="audit-title">
+          <h2 id="audit-title" class="mb-2 font-display text-[24px]">Registro de auditoría</h2>
+          <p class="mb-4 max-w-2xl text-[14px] leading-relaxed text-ink-muted">
+            Cada visualización, descarga, firma y cambio de permiso de este Deal
+            Room queda registrado con dirección IP y marca temporal.
+          </p>
+
+          <div class="overflow-x-auto border border-stone bg-white">
+            <table class="w-full min-w-[38rem] text-left">
+              <caption class="sr-only">Actividad del Deal Room</caption>
+              <thead>
+                <tr class="border-b border-stone text-[10px] uppercase tracking-luxus text-ink-muted">
+                  <th scope="col" class="px-5 py-3.5 font-normal">Fecha</th>
+                  <th scope="col" class="px-5 py-3.5 font-normal">Acción</th>
+                  <th scope="col" class="px-5 py-3.5 font-normal">Usuario</th>
+                  <th scope="col" class="px-5 py-3.5 font-normal">IP</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-stone">
+                {auditEntries.map((entry) => (
+                  <tr class="text-[13px]">
+                    <td class="whitespace-nowrap px-5 py-3 text-ink-muted">
+                      {formatDateTime(entry.created_at)}
+                    </td>
+                    <td class="px-5 py-3">
+                      <span class="font-mono text-[12px]">{entry.action}</span>
+                    </td>
+                    <td class="px-5 py-3 text-ink-muted">{entry.actor_email ?? '—'}</td>
+                    <td class="px-5 py-3 font-mono text-[12px] text-ink-muted">
+                      {entry.ip_address ?? '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+    </div>
+
+    <!-- Panel lateral -->
+    <aside class="xl:col-span-4">
+      <div class="space-y-6 xl:sticky xl:top-24">
+        <div id="nda">
+          <NdaPanel client:load dealId={deal.id} nda={nda} side={side} stage={deal.stage} />
+        </div>
+
+        <div class="border border-stone bg-white p-7">
+          <h2 class="text-eyebrow uppercase tracking-luxus text-ink-muted">Datos de la operación</h2>
+          <dl class="mt-5 space-y-3 text-[13px]">
+            <div class="flex justify-between gap-4">
+              <dt class="text-ink-muted">Referencia</dt>
+              <dd class="font-mono">{deal.reference_code}</dd>
+            </div>
+            <div class="flex justify-between gap-4">
+              <dt class="text-ink-muted">Solicitado</dt>
+              <dd>{formatDate(deal.requested_at)}</dd>
+            </div>
+            {deal.nda_signed_at && (
+              <div class="flex justify-between gap-4">
+                <dt class="text-ink-muted">NDA firmado</dt>
+                <dd>{formatDate(deal.nda_signed_at)}</dd>
+              </div>
+            )}
+            {deal.financing_type && (
+              <div class="flex justify-between gap-4">
+                <dt class="text-ink-muted">Financiación</dt>
+                <dd>
+                  {deal.financing_type === 'cash' ? 'Recursos propios'
+                    : deal.financing_type === 'financed' ? 'Financiada' : 'Mixta'}
+                </dd>
+              </div>
+            )}
+            {deal.final_amount && (
+              <div class="flex justify-between gap-4 border-t border-stone pt-3">
+                <dt class="text-ink-muted">Importe final</dt>
+                <dd class="font-display text-[16px]">{formatUsd(deal.final_amount)}</dd>
+              </div>
+            )}
+          </dl>
+
+          <a href={`/asset/${asset.slug}`} class="link-underline mt-5 inline-block text-[12px] uppercase tracking-luxus">
+            Ver ficha del activo →
+          </a>
+        </div>
+
+        {isSellerSide && deal.request_message && (
+          <div class="border border-stone bg-white p-7">
+            <h2 class="text-eyebrow uppercase tracking-luxus text-ink-muted">Motivo del comprador</h2>
+            <p class="mt-4 text-[13.5px] leading-relaxed text-ink-muted">{deal.request_message}</p>
+          </div>
+        )}
+
+        {history.length > 0 && (
+          <div class="border border-stone bg-white p-7">
+            <h2 class="text-eyebrow uppercase tracking-luxus text-ink-muted">Historial</h2>
+            <ol class="mt-5 space-y-3">
+              {history.slice().reverse().map((entry) => (
+                <li class="flex gap-3 text-[12.5px]">
+                  <span class="shrink-0 text-ink-muted/60">{formatDate(entry.created_at)}</span>
+                  <span class="text-ink-muted">
+                    {DEAL_STAGE_META[entry.to_stage as DealStage]?.label ?? entry.to_stage}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
+
+        <div class="border border-stone bg-ivory p-7">
+          <p class="text-[12px] leading-relaxed text-ink-muted">
+            El movimiento de fondos se canaliza a través de una entidad
+            fiduciaria o escrow externa designada por las partes. LUXUS PERÚ no
+            recibe, custodia ni transfiere fondos de la transacción.
+          </p>
+        </div>
+      </div>
+    </aside>
+  </div>
+</DashboardShell>

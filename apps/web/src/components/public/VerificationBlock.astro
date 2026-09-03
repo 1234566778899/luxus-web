@@ -1,0 +1,92 @@
+---
+import type { AssetRow } from '@luxus/shared';
+
+interface Props {
+  asset: Pick<
+    AssetRow,
+    'ownership_verified' | 'registry_reviewed' | 'documentation_reviewed' | 'valuation_available' | 'verified_at' | 'category'
+  >;
+}
+
+const { asset } = Astro.props;
+
+// La autoridad citada cambia por categoría: es lo que hace creíble el bloque.
+const registryAuthority: Record<string, string> = {
+  'real-estate': 'SUNARP · Registro de Predios',
+  companies: 'SUNARP · Registro de Personas Jurídicas',
+  vehicles: 'SUNARP · Registro de Propiedad Vehicular',
+  yachts: 'DICAPI · Registro de naves',
+  aircraft: 'DGAC · Registro de aeronaves',
+};
+
+const checks = [
+  {
+    key: 'ownership',
+    label: 'Ownership verified',
+    detail: 'Titularidad acreditada frente a documento de identidad del titular.',
+    done: asset.ownership_verified,
+  },
+  {
+    key: 'registry',
+    label: 'Registry reviewed',
+    detail: registryAuthority[asset.category] ?? 'Registro competente revisado.',
+    done: asset.registry_reviewed,
+  },
+  {
+    key: 'documentation',
+    label: 'Documentation reviewed',
+    detail: 'Documentación soporte revisada por el equipo de verificación.',
+    done: asset.documentation_reviewed,
+  },
+  {
+    key: 'valuation',
+    label: 'Valuation available',
+    detail: 'Tasación o valorización disponible en el Deal Room.',
+    done: asset.valuation_available,
+  },
+];
+---
+
+<section aria-labelledby="verification-title" class="border border-stone bg-ivory p-8">
+  <p class="text-eyebrow uppercase tracking-wider2 text-gold-dark">Verificación</p>
+  <h2 id="verification-title" class="mt-3 font-display text-[24px]">Estado de comprobaciones</h2>
+
+  <ul class="mt-7 space-y-5">
+    {checks.map((check) => (
+      <li class="flex gap-4">
+        <span
+          class:list={[
+            'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center border',
+            check.done ? 'border-ink bg-ink text-white' : 'border-stone-dark text-stone-dark',
+          ]}
+          aria-hidden="true"
+        >
+          {check.done ? (
+            <svg class="h-3 w-3" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6">
+              <path d="M2 6.5 L4.5 9 L10 3" stroke-linecap="square" />
+            </svg>
+          ) : (
+            <svg class="h-2.5 w-2.5" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4">
+              <path d="M2 6h8" stroke-linecap="square" />
+            </svg>
+          )}
+        </span>
+        <div>
+          <p class:list={['text-[14px]', check.done ? 'text-ink' : 'text-ink-muted']}>
+            {check.label}
+            <span class="sr-only">{check.done ? ' — verificado' : ' — pendiente'}</span>
+          </p>
+          <p class="mt-1 text-[12.5px] leading-relaxed text-ink-muted">{check.detail}</p>
+        </div>
+      </li>
+    ))}
+  </ul>
+
+  {asset.verified_at && (
+    <p class="mt-7 border-t border-stone-dark pt-5 text-[12px] leading-relaxed text-ink-muted">
+      Verificación completada el{' '}
+      {new Intl.DateTimeFormat('es-PE', { dateStyle: 'long' }).format(new Date(asset.verified_at))}.
+      LUXUS revisa la documentación aportada; no sustituye la due diligence del comprador.
+    </p>
+  )}
+</section>

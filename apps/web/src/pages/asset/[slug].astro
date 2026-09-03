@@ -1,0 +1,434 @@
+---
+import PublicLayout from '../../layouts/PublicLayout.astro';
+import AssetCard from '../../components/public/AssetCard.astro';
+import AssetPassport from '../../components/public/AssetPassport.astro';
+import VerificationBlock from '../../components/public/VerificationBlock.astro';
+import LocationMap from '../../components/public/LocationMap.astro';
+import AssetGallery from '../../components/islands/AssetGallery.tsx';
+import EnquireDialog from '../../components/islands/EnquireDialog.tsx';
+import WatchlistButton from '../../components/islands/WatchlistButton.tsx';
+import PrivateMediaPanel from '../../components/islands/PrivateMediaPanel.tsx';
+import RequestDealAccess from '../../components/islands/RequestDealAccess.tsx';
+import {
+  CATEGORY_META, DISTRICT_CENTROIDS, PERU_DEFAULT_CENTER, VISIBILITY_DESCRIPTIONS,
+  VISIBILITY_LABELS, cardSpecsFor, formatApproximateLocation, formatDate,
+  formatPriceRange, formatSpecValue, formatUsd,
+} from '@luxus/shared';
+import { fetchAssetBySlug } from '../../lib/queries';
+import { mediaUrl, publicGallery } from '../../lib/media';
+
+const { slug } = Astro.params;
+if (!slug) return Astro.redirect('/404', 302);
+
+const supabase = Astro.locals.supabase;
+const session = Astro.locals.session;
+
+const result = await fetchAssetBySlug(supabase, slug);
+if (!result) return new Response(null, { status: 404, statusText: 'Not found' });
+
+const { asset, broker, privateDetails, related } = result;
+const meta = CATEGORY_META[asset.category];
+const location = formatApproximateLocation(asset);
+const gallery = publicGallery(asset.asset_media);
+const galleryImages = gallery.map((m) => ({
+  id: m.id,
+  url: mediaUrl(m),
+  alt: m.alt_text ?? `${asset.title} — ${location}`,
+  caption: m.caption,
+}));
+
+// Centroide público del distrito — nunca la coordenada real del activo, que
+// vive solo en asset_private_details y solo llega al HTML si RLS la concedió.
+const districtCenter = (asset.district && DISTRICT_CENTROIDS[asset.district]) || PERU_DEFAULT_CENTER;
+
+// Línea de specs bajo el título, al estilo "16 Beds · 10 Baths · 3,507 Sqm".
+const specs = asset.specs as Record<string, unknown>;
+const headlineSpecs = cardSpecsFor(asset.category).filter(
+  (field) => specs?.[field.key] !== undefined && specs?.[field.key] !== null,
+);
+
+// `privateDetails` llega con contenido únicamente si RLS lo permitió: nivel II
+// (miembro verificado con deal abierto) o el propio vendedor.
+const hasLevelTwo = privateDetails !== null;
+const isVerifiedMember = session?.profile.kyc_status === 'approved';
+
+let watchlisted = false;
+if (session) {
+  const { data } = await supabase
+    .from('watchlist')
+    .select('asset_id')
+    .eq('asset_id', asset.id)
+    .maybeSingle();
+  watchlisted = Boolean(data);
+}
+
+let existingDeal: { id: string; stage: string } | null = null;
+if (session) {
+  const { data } = await supabase
+    .from('deals')
+    .select('id, stage')
+    .eq('asset_id', asset.id)
+    .eq('buyer_id', session.userId)
+    .maybeSingle();
+  existingDeal = data ?? null;
+}
+
+const cover = galleryImages[0]?.url;
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Product',
+  name: asset.title,
+  description: asset.description_public.slice(0, 300),
+  sku: asset.reference_code,
+  category: meta.labelEn,
+  image: galleryImages.slice(0, 4).map((i) => i.url),
+  brand: { '@type': 'Brand', name: 'LUXUS PERÚ' },
+  ...(asset.price_min && !asset.price_on_request
+    ? {
+        offers: {
+          '@type': 'AggregateOffer',
+          priceCurrency: asset.price_currency,
+          lowPrice: asset.price_min,
+          highPrice: asset.price_max ?? asset.price_min,
+          availability: 'https://schema.org/InStock',
+        },
+      }
+    : {}),
+};
+---
+
+<PublicLayout
+  title={asset.title}
+  description={asset.headline ?? asset.description_public.slice(0, 180)}
+  image={cover}
+  type="article"
+  jsonLd={jsonLd}
+>
+  <div class="container-page flex flex-wrap items-center justify-between gap-4 pb-6 pt-8">
+    <a
+      href={`/collection/${asset.category}`}
+      class="inline-flex items-center gap-2 text-[12px] uppercase tracking-luxus text-ink-muted hover:text-ink"
+    >
+      <svg class="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+        <path d="M9.5 3 L4.5 8 L9.5 13" stroke-linecap="square" />
+      </svg>
+      Volver a la colección
+    </a>
+
+    <nav aria-label="Migas de pan">
+      <ol class="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-luxus text-ink-muted">
+        <li><a href="/" class="link-underline">Inicio</a></li>
+        <li aria-hidden="true">·</li>
+        <li><a href={`/collection/${asset.category}`} class="link-underline">{meta.label}</a></li>
+        <li aria-hidden="true">·</li>
+        <li aria-current="page" class="text-ink">{asset.reference_code}</li>
+      </ol>
+    </nav>
+  </div>
+
+  <!-- Galería -->
+  <section class="container-page" aria-label="Galería del activo">
+    <AssetGallery client:load images={galleryImages} title={asset.title} />
+  </section>
+
+  <!-- Cabecera + acciones -->
+  <section class="container-page py-14">
+    <div class="grid gap-12 lg:grid-cols-12">
+      <div class="lg:col-span-7">
+        <div class="flex flex-wrap items-center gap-3">
+          <span class:list={[
+            asset.visibility === 'off_market' ? 'badge-offmkt'
+              : asset.visibility === 'private' ? 'badge-private' : 'badge-verified',
+          ]}>
+            {VISIBILITY_LABELS[asset.visibility]}
+          </span>
+          <span class="text-[11px] uppercase tracking-luxus text-ink-muted">
+            {meta.label} · Ref. {asset.reference_code}
+          </span>
+        </div>
+
+        <h1 class="mt-6 font-display text-[38px] leading-tight sm:text-[48px]">{asset.title}</h1>
+
+        {asset.headline && (
+          <p class="mt-4 font-display text-[20px] italic leading-relaxed text-ink-muted">
+            {asset.headline}
+          </p>
+        )}
+
+        {headlineSpecs.length > 0 && (
+          <!-- Línea de specs terse, al estilo "16 Beds · 10 Baths · 3,507 Sqm"
+               de un marketplace de referencia: el valor lleva su unidad breve
+               (o ninguna, si ya es descriptivo, como la marca o el modelo). -->
+          <p class="mt-5 flex flex-wrap items-center gap-x-2.5 text-[14px] text-ink">
+            {headlineSpecs.map((field, index) => (
+              <span class="flex items-center gap-2.5">
+                {index > 0 && <span aria-hidden="true" class="text-stone-dark">·</span>}
+                <span>{formatSpecValue(specs[field.key], field.unit ?? field.cardUnit)}</span>
+              </span>
+            ))}
+          </p>
+        )}
+
+        <p class="mt-4 inline-flex items-center gap-1.5 text-[13px] uppercase tracking-luxus text-ink-muted">
+          <svg class="h-3.5 w-3.5 text-gold-dark" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
+            <path d="M8 14.5S3 10 3 6.5a5 5 0 0 1 10 0C13 10 8 14.5 8 14.5Z" stroke-linejoin="round" />
+            <circle cx="8" cy="6.5" r="1.8" />
+          </svg>
+          {location}
+        </p>
+
+        <div class="prose prose-neutral mt-10 max-w-prose2 text-[16px] leading-[1.75] text-ink/90">
+          {asset.description_public.split('\n\n').map((paragraph) => <p>{paragraph}</p>)}
+        </div>
+
+        <p class="mt-8 border-l-2 border-gold bg-ivory px-5 py-4 text-[13px] leading-relaxed text-ink-muted">
+          {VISIBILITY_DESCRIPTIONS[asset.visibility]}
+        </p>
+
+        <!-- Explorar la zona: mapa real centrado en el distrito, con un
+             círculo de aproximación en vez de un marcador. La coordenada
+             exacta del activo nunca llega al HTML de esta página. -->
+        <section aria-labelledby="area-title" class="mt-12 border-t border-stone pt-10">
+          <h2 id="area-title" class="font-display text-[22px]">Explorar la zona</h2>
+          <p class="mt-2 text-[13.5px] text-ink-muted">{location}</p>
+
+          <div class="mt-5">
+            <LocationMap mode="approximate" center={districtCenter} label={location} radiusKm={1.3} />
+          </div>
+
+          <div class="mt-5 flex flex-wrap items-center justify-between gap-4 border border-stone bg-white px-5 py-4">
+            <p class="text-[13px] leading-relaxed text-ink-muted">
+              La dirección exacta se comparte con miembros verificados que
+              soliciten acceso al Deal Room de este activo.
+            </p>
+            <a
+              href={session ? '/onboarding/kyc' : '/private-access'}
+              class="shrink-0 text-[11px] uppercase tracking-luxus text-ink hover:text-gold-dark"
+            >
+              {hasLevelTwo ? 'Ver dirección exacta ↓' : 'Solicitar ubicación exacta →'}
+            </a>
+          </div>
+        </section>
+      </div>
+
+      <!-- Panel lateral -->
+      <aside class="lg:col-span-5">
+        <div class="sticky top-24 space-y-6">
+          <div class="border border-ink p-8">
+            <p class="text-eyebrow uppercase tracking-luxus text-ink-muted">
+              {hasLevelTwo ? 'Precio de referencia' : 'Rango público'}
+            </p>
+
+            {hasLevelTwo && privateDetails?.price_exact ? (
+              <>
+                <p class="mt-3 font-display text-[36px] leading-none text-ink">
+                  {formatUsd(privateDetails.price_exact)}
+                </p>
+                <p class="mt-2 text-[12px] text-ink-muted">
+                  Rango público: {formatPriceRange(asset)}
+                </p>
+              </>
+            ) : (
+              <p class="mt-3 font-display text-[32px] leading-none text-ink">
+                {formatPriceRange(asset)}
+              </p>
+            )}
+
+            <!-- `flex flex-col gap-3`, no `space-y-3`: dos de estos tres
+                 elementos son islas de React que Astro envuelve en
+                 `<astro-island display:contents>` — el margen que aplicaría
+                 `space-y-*` al hijo directo no se renderiza sobre un
+                 elemento `display:contents`, así que el espaciado
+                 desaparecía justo antes de cada isla. `gap` en flex no
+                 depende del modelo de caja de cada hijo y sí funciona. -->
+            <div class="mt-8 flex flex-col gap-3">
+              <EnquireDialog
+                client:visible
+                assetId={asset.id}
+                assetTitle={asset.title}
+                reference={asset.reference_code}
+                prefill={session ? { name: session.profile.full_name ?? '', email: session.email } : null}
+              />
+
+              {session ? (
+                <RequestDealAccess
+                  client:visible
+                  assetId={asset.id}
+                  assetTitle={asset.title}
+                  existingDeal={existingDeal}
+                  kycApproved={isVerifiedMember}
+                />
+              ) : (
+                <a href="/private-access" class="btn-outline w-full">Request Private Access</a>
+              )}
+
+              <WatchlistButton
+                client:visible
+                assetId={asset.id}
+                initial={watchlisted}
+                authenticated={Boolean(session)}
+              />
+            </div>
+
+            <dl class="mt-8 space-y-3 border-t border-stone pt-6 text-[13px]">
+              <div class="flex justify-between gap-4">
+                <dt class="text-ink-muted">Publicado</dt>
+                <dd>{formatDate(asset.published_at)}</dd>
+              </div>
+              <div class="flex justify-between gap-4">
+                <dt class="text-ink-muted">Categoría</dt>
+                <dd>{meta.label}</dd>
+              </div>
+              <div class="flex justify-between gap-4">
+                <dt class="text-ink-muted">Ubicación</dt>
+                <dd>{location}</dd>
+              </div>
+            </dl>
+          </div>
+
+          <!-- Bloque Nivel II -->
+          {hasLevelTwo ? (
+            <div class="border border-gold bg-ivory p-8">
+              <p class="text-eyebrow uppercase tracking-wider2 text-gold-dark">
+                Nivel II · Miembro verificado
+              </p>
+              <dl class="mt-6 space-y-4 text-[14px]">
+                {privateDetails?.address_exact && (
+                  <div>
+                    <dt class="text-[12px] uppercase tracking-luxus text-ink-muted">Dirección</dt>
+                    <dd class="mt-1 leading-relaxed">{privateDetails.address_exact}</dd>
+                  </div>
+                )}
+                {privateDetails?.latitude && privateDetails?.longitude && (
+                  <div>
+                    <LocationMap
+                      mode="exact"
+                      center={{ lat: privateDetails.latitude, lng: privateDetails.longitude }}
+                      label={privateDetails.address_exact ?? asset.title}
+                    />
+                  </div>
+                )}
+                {privateDetails?.registry_reference && (
+                  <div>
+                    <dt class="text-[12px] uppercase tracking-luxus text-ink-muted">Referencia registral</dt>
+                    <dd class="mt-1">{privateDetails.registry_reference}</dd>
+                  </div>
+                )}
+                {privateDetails?.valuation_amount && (
+                  <div>
+                    <dt class="text-[12px] uppercase tracking-luxus text-ink-muted">Valorización</dt>
+                    <dd class="mt-1">
+                      {formatUsd(privateDetails.valuation_amount)}
+                      {privateDetails.valuation_firm && ` · ${privateDetails.valuation_firm}`}
+                      {privateDetails.valuation_date && ` · ${formatDate(privateDetails.valuation_date)}`}
+                    </dd>
+                  </div>
+                )}
+                {privateDetails?.description_private && (
+                  <div>
+                    <dt class="text-[12px] uppercase tracking-luxus text-ink-muted">Nota del vendedor</dt>
+                    <dd class="mt-1 leading-relaxed">{privateDetails.description_private}</dd>
+                  </div>
+                )}
+              </dl>
+
+              <div class="mt-7 border-t border-stone-dark pt-6">
+                <PrivateMediaPanel client:visible assetId={asset.id} />
+              </div>
+            </div>
+          ) : (
+            <div class="border border-stone bg-ivory p-8">
+              <p class="text-eyebrow uppercase tracking-luxus text-ink-muted">Información reservada</p>
+              <p class="mt-4 text-[14px] leading-relaxed text-ink-muted">
+                El precio de referencia, la dirección exacta, la valorización y
+                el material fotográfico reservado están disponibles para
+                miembros con verificación de identidad completada.
+              </p>
+              <a
+                href={session ? '/onboarding/kyc' : '/private-access'}
+                class="btn-outline mt-6 w-full"
+              >
+                {session ? 'Completar verificación' : 'Solicitar acceso'}
+              </a>
+            </div>
+          )}
+
+          {broker && (
+            <div class="border border-stone p-8">
+              <p class="text-eyebrow uppercase tracking-luxus text-ink-muted">Representado por</p>
+              <div class="mt-4 flex items-start justify-between gap-4">
+                <div>
+                  <p class="font-display text-[19px]">{broker.company_name}</p>
+                  {broker.is_verified && (
+                    <span class="badge mt-2 border-gold text-gold-dark">Luxus Verified</span>
+                  )}
+                </div>
+              </div>
+              <a href={`/broker/${broker.slug}`} class="link-underline mt-5 inline-block text-[12px] uppercase tracking-luxus">
+                Ver perfil del bróker →
+              </a>
+            </div>
+          )}
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- Asset Passport + verificación -->
+  <section class="container-page pb-20">
+    <div class="grid gap-14 lg:grid-cols-12">
+      <div class="lg:col-span-7">
+        <AssetPassport category={asset.category} specs={asset.specs as Record<string, unknown>} />
+      </div>
+      <div class="lg:col-span-5">
+        <VerificationBlock asset={asset} />
+      </div>
+    </div>
+  </section>
+
+  <!-- Proceso -->
+  <section class="border-t border-stone bg-ivory py-20" aria-labelledby="process-title">
+    <div class="container-page">
+      <p class="text-eyebrow uppercase tracking-wider2 text-gold-dark">Cómo continúa</p>
+      <h2 id="process-title" class="mt-3 font-display text-[32px]">Del interés al Deal Room</h2>
+
+      <ol class="mt-12 grid gap-px overflow-hidden border border-stone bg-stone sm:grid-cols-2 lg:grid-cols-4">
+        {[
+          { n: '01', t: 'Consulta privada', d: 'Envía su interés. Un asesor evalúa el encaje y responde de forma reservada.' },
+          { n: '02', t: 'Verificación', d: 'Se completa la identificación y la declaración de origen de fondos.' },
+          { n: '03', t: 'NDA', d: 'El vendedor aprueba el acceso y se firma el acuerdo de confidencialidad.' },
+          { n: '04', t: 'Deal Room', d: 'Documentación con permisos por archivo, Q&A, oferta y LOI.' },
+        ].map((step) => (
+          <li class="bg-ivory p-8">
+            <p class="font-display text-[13px] text-gold-dark">{step.n}</p>
+            <h3 class="mt-4 font-display text-[21px]">{step.t}</h3>
+            <p class="mt-2 text-[13.5px] leading-relaxed text-ink-muted">{step.d}</p>
+          </li>
+        ))}
+      </ol>
+    </div>
+  </section>
+
+  <!-- Relacionados -->
+  {related.length > 0 && (
+    <section class="container-page py-20" aria-labelledby="related-title">
+      <h2 id="related-title" class="font-display text-[30px]">Otros activos en {meta.label}</h2>
+      <div class="mt-12 grid gap-x-8 gap-y-14 sm:grid-cols-2 lg:grid-cols-3">
+        {related.map((item) => <AssetCard asset={item} />)}
+      </div>
+    </section>
+  )}
+</PublicLayout>
+
+<script define:vars={{ assetId: asset.id, apiUrl: import.meta.env.PUBLIC_API_URL }}>
+  // Beacon de vista para las estadísticas del vendedor. No bloquea el render y
+  // no envía datos personales: la API asocia la sesión si existe.
+  if (!sessionStorage.getItem(`luxus:viewed:${assetId}`)) {
+    sessionStorage.setItem(`luxus:viewed:${assetId}`, '1');
+    fetch(`${apiUrl}/v1/assets/${assetId}/view`, {
+      method: 'POST',
+      keepalive: true,
+    }).catch(() => {});
+  }
+</script>

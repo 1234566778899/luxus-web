@@ -1,0 +1,37 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import SiteHeader from '../components/public/SiteHeader.astro';
+import SiteFooter from '../components/public/SiteFooter.astro';
+import type { AssetCategory } from '@luxus/shared';
+
+interface Props {
+  title: string;
+  description?: string;
+  image?: string;
+  transparentHeader?: boolean;
+  canonical?: string;
+  type?: 'website' | 'article';
+  jsonLd?: Record<string, unknown> | Record<string, unknown>[];
+  /** Página de colección: pone el buscador en el encabezado en vez del nav. */
+  headerCategory?: AssetCategory;
+  headerSearchValue?: string;
+}
+
+const { transparentHeader = false, headerCategory, headerSearchValue, ...seo } = Astro.props;
+const session = Astro.locals.session;
+---
+
+<BaseLayout {...seo}>
+  <div class="flex min-h-screen flex-col">
+    <SiteHeader
+      transparent={transparentHeader}
+      session={session}
+      category={headerCategory}
+      searchValue={headerSearchValue}
+    />
+    <main id="main" class:list={['flex-1', transparentHeader && '-mt-[72px]']}>
+      <slot />
+    </main>
+    <SiteFooter />
+  </div>
+</BaseLayout>

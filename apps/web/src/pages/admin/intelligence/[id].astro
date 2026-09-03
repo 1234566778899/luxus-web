@@ -1,0 +1,45 @@
+---
+import DashboardShell from '../../../components/private/DashboardShell.astro';
+import ArticleEditor from '../../../components/islands/ArticleEditor.tsx';
+import { requireRole } from '../../../lib/auth';
+
+const guard = requireRole(Astro, 'admin');
+if (guard instanceof Response) return guard;
+const session = guard;
+
+const { id } = Astro.params;
+if (!id) return Astro.redirect('/admin/intelligence', 302);
+
+// La política "articles: admin all" concede lectura completa al admin;
+// se consulta directo por Supabase en vez de sumar un endpoint solo-lectura.
+const { data: article } = await Astro.locals.supabase
+  .from('articles')
+  .select('id, slug, title, subtitle, excerpt, body_md, category, tags, status, is_members_only, seo')
+  .eq('id', id)
+  .maybeSingle();
+
+if (!article) {
+  return new Response(null, { status: 404, statusText: 'Not found' });
+}
+---
+
+<DashboardShell title={article.title} session={session}>
+  <div class="mb-8">
+    <nav aria-label="Migas de pan" class="mb-6">
+      <ol class="flex items-center gap-2 text-[11px] uppercase tracking-luxus text-ink-muted">
+        <li><a href="/admin/intelligence" class="link-underline">Intelligence</a></li>
+        <li aria-hidden="true">·</li>
+        <li aria-current="page" class="truncate text-ink">{article.title}</li>
+      </ol>
+    </nav>
+    <h1 class="font-display text-[32px] leading-tight">{article.title}</h1>
+  </div>
+
+  <ArticleEditor
+    client:load
+    existing={{
+      ...article,
+      seo: (article.seo ?? {}) as { title?: string; description?: string; og_image?: string },
+    }}
+  />
+</DashboardShell>

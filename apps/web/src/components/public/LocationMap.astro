@@ -1,0 +1,164 @@
+---
+import { PUBLIC_GOOGLE_MAPS_API_KEY } from '../../lib/env';
+
+interface Coordinates {
+  lat: number;
+  lng: number;
+}
+
+interface Props {
+  /**
+   * "approximate" dibuja un círculo translúcido sobre el centro del distrito
+   * (Nivel I: nunca la coordenada real). "exact" incrusta un mapa
+   * interactivo centrado en la coordenada exacta (Nivel II/III únicamente —
+   * quien llama a este componente ya decidió que el visitante tiene derecho
+   * a verla).
+   */
+  mode: 'approximate' | 'exact';
+  center: Coordinates;
+  label: string;
+  /** Radio del círculo de aproximación, en kilómetros. */
+  radiusKm?: number;
+  zoom?: number;
+}
+
+const { mode, center, label, radiusKm = 1.3, zoom = mode === 'exact' ? 16 : 14 } = Astro.props;
+const hasKey = PUBLIC_GOOGLE_MAPS_API_KEY.length > 0;
+const fallbackId = `map-fallback-${crypto.randomUUID()}`;
+const imgId = `map-img-${crypto.randomUUID()}`;
+
+/**
+ * Puntos de un polígono regular alrededor de `center` que aproxima un
+ * círculo de `radiusKm`. Static Maps no tiene primitiva de círculo: se
+ * dibuja como un `path` cerrado con suficientes vértices para leerse curvo.
+ */
+function circlePath(c: Coordinates, km: number, steps = 48): string {
+  const R = 6371; // radio terrestre, km
+  const latRad = (c.lat * Math.PI) / 180;
+  const points: string[] = [];
+  for (let i = 0; i <= steps; i += 1) {
+    const angle = (i / steps) * 2 * Math.PI;
+    const dLat = (km / R) * (180 / Math.PI) * Math.cos(angle);
+    const dLng = ((km / R) * (180 / Math.PI) * Math.sin(angle)) / Math.cos(latRad);
+    points.push(`${(c.lat + dLat).toFixed(6)},${(c.lng + dLng).toFixed(6)}`);
+  }
+  return points.join('|');
+}
+
+// Estilo discreto: satura menos que el Maps por defecto, para que combine
+// con la paleta editorial del sitio en vez de competir con ella.
+const MAP_STYLE = [
+  'feature:all|saturation:-55|lightness:5',
+  'feature:poi|visibility:off',
+  'feature:transit|visibility:off',
+  'feature:road|element:labels.icon|visibility:off',
+].map((s) => `&style=${encodeURIComponent(s)}`).join('');
+
+let staticSrc = '';
+if (hasKey && mode === 'approximate') {
+  const params = new URLSearchParams({
+    center: `${center.lat},${center.lng}`,
+    zoom: String(zoom),
+    size: '1200x520',
+    scale: '2',
+    maptype: 'roadmap',
+    key: PUBLIC_GOOGLE_MAPS_API_KEY,
+  });
+  // Círculo relleno en el acento de marca, sin marcador: la coordenada
+  // exacta del activo nunca se envía a Google ni al navegador en este modo.
+  const path = `fillcolor:0x0F6E6E33|color:0x0F6E6EAA|weight:2|${circlePath(center, radiusKm)}`;
+  staticSrc = `https://maps.googleapis.com/maps/api/staticmap?${params.toString()}${MAP_STYLE}&path=${encodeURIComponent(path)}`;
+}
+
+let embedSrc = '';
+if (hasKey && mode === 'exact') {
+  const params = new URLSearchParams({
+    key: PUBLIC_GOOGLE_MAPS_API_KEY,
+    q: `${center.lat},${center.lng}`,
+    zoom: String(zoom),
+  });
+  embedSrc = `https://www.google.com/maps/embed/v1/place?${params.toString()}`;
+}
+---
+
+{mode === 'approximate' && hasKey && (
+  <div class="relative aspect-[16/9] overflow-hidden bg-ivory sm:aspect-[21/9]">
+    <img
+      id={imgId}
+      src={staticSrc}
+      alt={`Área aproximada — ${label}`}
+      loading="lazy"
+      decoding="async"
+      width={1200}
+      height={520}
+      class="h-full w-full object-cover"
+    />
+    <p class="absolute bottom-4 left-4 bg-white/90 px-3 py-1.5 text-[11px] uppercase tracking-luxus text-ink-muted backdrop-blur-sm">
+      Área aproximada — {label}
+    </p>
+
+    {/* Respaldo dibujado a mano: se activa si Google rechaza la petición
+        (clave sin la API habilitada, cuota agotada, etc.) para que la
+        página nunca muestre una imagen rota. */}
+    <div id={fallbackId} hidden class="absolute inset-0">
+      <div class="absolute inset-0 viewer-watermark" aria-hidden="true"></div>
+      <div class="absolute inset-0 flex items-center justify-center">
+        <div class="relative flex h-40 w-40 items-center justify-center rounded-full bg-ink/[0.06] sm:h-52 sm:w-52">
+          <div class="absolute inset-4 rounded-full border border-dashed border-ink/25"></div>
+          <span class="flex h-9 w-9 items-center justify-center rounded-full bg-ink text-white shadow-lg">
+            <svg class="h-4 w-4" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+              <circle cx="8" cy="8" r="4" />
+            </svg>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <script define:vars={{ imgId, fallbackId }}>
+      {
+        // Sin isla de React: es un único listener de error, no interactividad.
+        const img = document.getElementById(imgId);
+        const fallback = document.getElementById(fallbackId);
+        img?.addEventListener('error', () => {
+          img.hidden = true;
+          if (fallback) fallback.hidden = false;
+        });
+      }
+    </script>
+  </div>
+)}
+
+{mode === 'exact' && hasKey && (
+  <div class="aspect-[16/9] overflow-hidden border border-stone sm:aspect-[21/9]">
+    <iframe
+      src={embedSrc}
+      title={`Mapa — ${label}`}
+      width="100%"
+      height="100%"
+      loading="lazy"
+      referrerpolicy="no-referrer-when-downgrade"
+      style="border:0;"
+    />
+  </div>
+)}
+
+{!hasKey && (
+  <!-- Sin clave configurada: mismo círculo de aproximación dibujado a mano,
+       para que la página no dependa de un servicio externo para renderizar. -->
+  <div class="relative aspect-[16/9] overflow-hidden bg-ivory sm:aspect-[21/9]">
+    <div class="absolute inset-0 viewer-watermark" aria-hidden="true"></div>
+    <div class="absolute inset-0 flex items-center justify-center">
+      <div class="relative flex h-40 w-40 items-center justify-center rounded-full bg-ink/[0.06] sm:h-52 sm:w-52">
+        <div class="absolute inset-4 rounded-full border border-dashed border-ink/25"></div>
+        <span class="flex h-9 w-9 items-center justify-center rounded-full bg-ink text-white shadow-lg">
+          <svg class="h-4 w-4" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <circle cx="8" cy="8" r="4" />
+          </svg>
+        </span>
+      </div>
+    </div>
+    <p class="absolute bottom-4 left-4 text-[11px] uppercase tracking-luxus text-ink-muted">
+      {mode === 'approximate' ? `Área aproximada — ${label}` : label}
+    </p>
+  </div>
+)}

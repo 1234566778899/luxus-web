@@ -1,0 +1,73 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import Logo from '../components/ui/Logo.astro';
+
+interface Props {
+  title: string;
+  heading: string;
+  subheading?: string;
+}
+
+const { title, heading, subheading } = Astro.props;
+---
+
+<BaseLayout title={title} noindex>
+  <div class="grid min-h-screen lg:grid-cols-2">
+    <!-- Panel de marca -->
+    <aside class="relative hidden overflow-hidden bg-ink lg:block">
+      <img
+        src="https://picsum.photos/seed/luxus-auth/1400/1800"
+        alt=""
+        aria-hidden="true"
+        class="absolute inset-0 h-full w-full object-cover opacity-35"
+      />
+      <div class="absolute inset-0 scrim" aria-hidden="true"></div>
+
+      <div class="relative flex h-full flex-col justify-between p-12">
+        <Logo variant="light" size="md" href="/" />
+
+        <div class="max-w-md">
+          <p class="font-display text-[34px] leading-tight text-white">
+            Exceptional Assets.<br />
+            <span class="italic text-gold-light">Private Transactions.</span>
+          </p>
+          <p class="mt-6 text-[14px] leading-relaxed text-white/[55%]">
+            El acceso a esta zona está restringido a miembros admitidos. Toda
+            actividad queda registrada en el log de auditoría de la plataforma.
+          </p>
+        </div>
+
+        <p class="text-[11px] uppercase tracking-luxus text-white/[35%]">
+          Verified · Confidential · Curated · Secure
+        </p>
+      </div>
+    </aside>
+
+    <!-- Panel de formulario -->
+    <main id="main" class="flex flex-col justify-center px-6 py-12 sm:px-12 lg:px-16">
+      <div class="mx-auto w-full max-w-md">
+        <div class="lg:hidden">
+          <Logo size="md" href="/" />
+        </div>
+
+        <div class="mt-10 lg:mt-0">
+          <h1 class="font-display text-[32px] leading-tight">{heading}</h1>
+          {subheading && (
+            <p class="mt-4 text-[14.5px] leading-relaxed text-ink-muted">{subheading}</p>
+          )}
+        </div>
+
+        <div class="mt-10">
+          <slot />
+        </div>
+
+        <p class="mt-12 text-[12px] leading-relaxed text-ink-muted">
+          Al acceder acepta los{' '}
+          <a href="/legal/terms" class="link-underline text-ink">términos y condiciones</a>{' '}
+          y la{' '}
+          <a href="/legal/privacy" class="link-underline text-ink">política de privacidad</a>.
+        </p>
+      </div>
+    </main>
+  </div>
+</BaseLayout>

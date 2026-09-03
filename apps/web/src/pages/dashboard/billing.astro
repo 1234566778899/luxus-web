@@ -1,0 +1,198 @@
+---
+import DashboardShell from '../../components/private/DashboardShell.astro';
+import BillingActions from '../../components/islands/BillingActions.tsx';
+import { BROKER_PLANS, MEMBERSHIP_PLANS, formatCents, formatDate } from '@luxus/shared';
+import { requireSession } from '../../lib/auth';
+
+const guard = requireSession(Astro);
+if (guard instanceof Response) return guard;
+const session = guard;
+
+const supabase = Astro.locals.supabase;
+const isSellSide = ['seller', 'broker'].includes(session.profile.role);
+
+const [subsResult, paymentsResult] = await Promise.all([
+  supabase
+    .from('subscriptions')
+    .select('id, kind, plan_code, status, current_period_start, current_period_end, cancel_at_period_end')
+    .order('created_at', { ascending: false }),
+  supabase
+    .from('payments')
+    .select('id, kind, status, description, amount_cents, currency, receipt_number, receipt_url, paid_at, created_at')
+    .order('created_at', { ascending: false })
+    .limit(50),
+]);
+
+const subscriptions = subsResult.data ?? [];
+const payments = paymentsResult.data ?? [];
+const activeSub = subscriptions.find((s) => ['active', 'trialing', 'past_due'].includes(s.status));
+
+const plans = isSellSide ? BROKER_PLANS : MEMBERSHIP_PLANS;
+const preselected = Astro.url.searchParams.get('plan');
+const checkoutState = Astro.url.searchParams.get('checkout');
+
+const STATUS_LABEL: Record<string, string> = {
+  active: 'Activa',
+  trialing: 'En prueba',
+  past_due: 'Pago pendiente',
+  canceled: 'Cancelada',
+  incomplete: 'Incompleta',
+  unpaid: 'Impagada',
+  paused: 'En pausa',
+};
+---
+
+<DashboardShell title="Facturación" session={session} heading="Facturación">
+  {checkoutState === 'success' && (
+    <p class="mb-8 border-l-2 border-gold bg-white px-5 py-4 text-[14px] leading-relaxed text-ink">
+      Pago recibido. La activación puede tardar unos segundos en reflejarse.
+    </p>
+  )}
+
+  <!-- Suscripción vigente -->
+  <section aria-labelledby="sub-title">
+    <h2 id="sub-title" class="font-display text-[24px]">Suscripción</h2>
+
+    {activeSub ? (
+      <div class="mt-5 border border-ink bg-white p-8">
+        <div class="flex flex-wrap items-start justify-between gap-6">
+          <div>
+            <p class="text-eyebrow uppercase tracking-luxus text-ink-muted">
+              {activeSub.kind === 'broker' ? 'Plan de bróker' : 'Membresía'}
+            </p>
+            <p class="mt-3 font-display text-[26px]">
+              {plans.find((p) => p.code === activeSub.plan_code)?.name ?? activeSub.plan_code}
+            </p>
+            <p class="mt-2 text-[13px] text-ink-muted">
+              Estado: {STATUS_LABEL[activeSub.status] ?? activeSub.status}
+              {activeSub.current_period_end && (
+                <span>{' · renueva el ' + formatDate(activeSub.current_period_end)}</span>
+              )}
+            </p>
+            {activeSub.cancel_at_period_end && (
+              <p class="mt-2 text-[13px] text-gold-dark">
+                Cancelación programada al final del período.
+              </p>
+            )}
+          </div>
+
+          <BillingActions client:visible hasSubscription />
+        </div>
+      </div>
+    ) : (
+      <div class="mt-5 border border-stone bg-white p-8">
+        <p class="text-[14px] leading-relaxed text-ink-muted">
+          No tiene una suscripción activa. Contrate un plan para ampliar su
+          acceso.
+        </p>
+      </div>
+    )}
+  </section>
+
+  <!-- Planes -->
+  <section class="mt-12" aria-labelledby="plans-title">
+    <h2 id="plans-title" class="font-display text-[24px]">
+      {isSellSide ? 'Planes de bróker' : 'Membresías'}
+    </h2>
+
+    <div class="mt-6 grid gap-px overflow-hidden border border-stone bg-stone lg:grid-cols-3">
+      {plans.map((plan) => {
+        const current = activeSub?.plan_code === plan.code;
+        return (
+          <div class:list={['flex flex-col bg-white p-7', current && 'ring-1 ring-inset ring-ink']}>
+            <div class="flex items-start justify-between gap-3">
+              <h3 class="font-display text-[22px]">{plan.name}</h3>
+              {current && <span class="badge border-ink bg-ink text-white">Actual</span>}
+            </div>
+
+            <p class="mt-2 text-[13px] leading-relaxed text-ink-muted">{plan.tagline}</p>
+
+            <p class="mt-6 font-display text-[30px] leading-none">
+              {formatCents(plan.amountCents)}
+              <span class="ml-2 text-[12px] text-ink-muted">
+                / {plan.interval === 'year' ? 'año' : 'mes'}
+              </span>
+            </p>
+
+            <ul class="mt-6 flex-1 space-y-2.5">
+              {plan.benefits.map((benefit) => (
+                <li class="flex gap-2.5 text-[13px] leading-relaxed text-ink-muted">
+                  <span aria-hidden="true" class="text-gold-dark">—</span>
+                  {benefit}
+                </li>
+              ))}
+            </ul>
+
+            <div class="mt-8">
+              <BillingActions
+                client:visible
+                planCode={plan.code}
+                planName={plan.name}
+                isCurrent={current}
+                autoStart={preselected === plan.code}
+              />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  </section>
+
+  <!-- Historial -->
+  <section class="mt-12" aria-labelledby="payments-title">
+    <h2 id="payments-title" class="font-display text-[24px]">Historial de pagos</h2>
+
+    {payments.length === 0 ? (
+      <p class="mt-5 border border-stone bg-white p-8 text-[14px] text-ink-muted">
+        Aún no hay pagos registrados.
+      </p>
+    ) : (
+      <div class="mt-5 overflow-x-auto border border-stone bg-white">
+        <table class="w-full min-w-[40rem] text-left">
+          <caption class="sr-only">Pagos realizados</caption>
+          <thead>
+            <tr class="border-b border-stone text-[10px] uppercase tracking-luxus text-ink-muted">
+              <th scope="col" class="px-5 py-3.5 font-normal">Fecha</th>
+              <th scope="col" class="px-5 py-3.5 font-normal">Concepto</th>
+              <th scope="col" class="px-5 py-3.5 font-normal">Recibo</th>
+              <th scope="col" class="px-5 py-3.5 font-normal">Estado</th>
+              <th scope="col" class="px-5 py-3.5 text-right font-normal">Importe</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-stone">
+            {payments.map((payment) => (
+              <tr class="text-[13.5px]">
+                <td class="whitespace-nowrap px-5 py-3.5 text-ink-muted">
+                  {formatDate(payment.paid_at ?? payment.created_at)}
+                </td>
+                <td class="px-5 py-3.5">{payment.description ?? payment.kind}</td>
+                <td class="px-5 py-3.5 font-mono text-[12px] text-ink-muted">
+                  {payment.receipt_number ?? '—'}
+                </td>
+                <td class="px-5 py-3.5">
+                  <span class:list={[
+                    'badge',
+                    payment.status === 'paid' ? 'border-ink text-ink' : 'border-stone-dark text-ink-muted',
+                  ]}>
+                    {payment.status === 'paid' ? 'Pagado'
+                      : payment.status === 'pending' ? 'Pendiente'
+                      : payment.status === 'refunded' ? 'Reembolsado' : payment.status}
+                  </span>
+                </td>
+                <td class="px-5 py-3.5 text-right font-display text-[15px]">
+                  {formatCents(payment.amount_cents, payment.currency)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </section>
+
+  <p class="mt-8 border-l-2 border-stone-dark bg-white px-5 py-4 text-[12.5px] leading-relaxed text-ink-muted">
+    Los importes se expresan en dólares estadounidenses y no incluyen los
+    tributos aplicables. Las comisiones de éxito por transacción cerrada, cuando
+    se pacten, se facturan de forma independiente fuera de la plataforma.
+  </p>
+</DashboardShell>

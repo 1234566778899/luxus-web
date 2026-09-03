@@ -1,0 +1,47 @@
+---
+import type { AssetCategory } from '@luxus/shared';
+import { specFieldsFor, formatSpecValue } from '@luxus/shared';
+
+interface Props {
+  category: AssetCategory;
+  specs: Record<string, unknown>;
+}
+
+const { category, specs } = Astro.props;
+
+// Se agrupan por el `group` declarado en las specs compartidas: el pasaporte
+// de un inmueble y el de una aeronave se construyen con el mismo componente.
+const fields = specFieldsFor(category).filter(
+  (field) => specs?.[field.key] !== undefined && specs?.[field.key] !== null && specs?.[field.key] !== '',
+);
+
+const groups = fields.reduce<Record<string, typeof fields>>((acc, field) => {
+  (acc[field.group] ??= []).push(field);
+  return acc;
+}, {});
+---
+
+{Object.keys(groups).length > 0 && (
+  <section aria-labelledby="passport-title" class="border-t border-ink pt-8">
+    <p class="text-eyebrow uppercase tracking-wider2 text-gold-dark">Asset Passport</p>
+    <h2 id="passport-title" class="mt-3 font-display text-[30px]">Especificaciones</h2>
+
+    <div class="mt-10 grid gap-x-12 gap-y-10 sm:grid-cols-2">
+      {Object.entries(groups).map(([group, groupFields]) => (
+        <div>
+          <h3 class="text-eyebrow uppercase tracking-luxus text-ink-muted">{group}</h3>
+          <dl class="mt-4 divide-y divide-stone border-t border-stone">
+            {groupFields.map((field) => (
+              <div class="flex items-baseline justify-between gap-6 py-3">
+                <dt class="text-[13px] text-ink-muted">{field.label}</dt>
+                <dd class="text-right text-[14px] text-ink">
+                  {formatSpecValue(specs[field.key], field.unit)}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      ))}
+    </div>
+  </section>
+)}

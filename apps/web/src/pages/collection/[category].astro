@@ -1,0 +1,185 @@
+---
+import PublicLayout from '../../layouts/PublicLayout.astro';
+import AssetCard from '../../components/public/AssetCard.astro';
+import AssetFilters from '../../components/islands/AssetFilters.tsx';
+import CollectionHero from '../../components/public/CollectionHero.astro';
+import { CATEGORY_META, PRICE_BANDS, assetFilterSchema, isAssetCategory } from '@luxus/shared';
+import { fetchCollection } from '../../lib/queries';
+
+const { category } = Astro.params;
+
+if (!category || !isAssetCategory(category)) {
+  return Astro.redirect('/404', 302);
+}
+
+const meta = CATEGORY_META[category];
+const params = Object.fromEntries(Astro.url.searchParams.entries());
+
+// La búsqueda rápida del hero envía un tramo predefinido ("band"); se
+// traduce al mismo priceMin/priceMax que ya entiende el filtro fino.
+const selectedBand = PRICE_BANDS.find((b) => b.key === params.band);
+const filterInput = {
+  ...params,
+  ...(selectedBand
+    ? { priceMin: String(selectedBand.min), priceMax: selectedBand.max ? String(selectedBand.max) : undefined }
+    : {}),
+};
+
+const parsed = assetFilterSchema.safeParse({ ...filterInput, category });
+const filter = parsed.success ? parsed.data : assetFilterSchema.parse({ category });
+
+const { assets, total, page, pageCount } = await fetchCollection(
+  Astro.locals.supabase,
+  filter,
+);
+
+function pageHref(target: number): string {
+  const next = new URLSearchParams(Astro.url.searchParams);
+  if (target <= 1) next.delete('page');
+  else next.set('page', String(target));
+  const query = next.toString();
+  return `/collection/${category}${query ? `?${query}` : ''}`;
+}
+
+const visiblePages = Array.from({ length: pageCount }, (_, i) => i + 1).filter(
+  (n) => n === 1 || n === pageCount || Math.abs(n - page) <= 1,
+);
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  name: `${meta.label} — LUXUS PERÚ`,
+  description: meta.intro,
+  numberOfItems: total,
+};
+---
+
+<PublicLayout
+  title={`${meta.label} en Perú`}
+  description={meta.intro}
+  jsonLd={jsonLd}
+  transparentHeader
+  headerCategory={category}
+  headerSearchValue={params.district ?? params.q ?? ''}
+>
+  <CollectionHero
+    category={category}
+    title={`Explore ${meta.label} de Excepción en Perú`}
+    tagline={meta.intro}
+    total={total}
+    currentRegion={params.region}
+    currentBand={params.band}
+  />
+
+  <div class="container-page pt-8">
+    <nav aria-label="Migas de pan">
+      <ol class="flex items-center gap-2 text-[11px] uppercase tracking-luxus text-ink-muted">
+        <li><a href="/" class="link-underline">Inicio</a></li>
+        <li aria-hidden="true">·</li>
+        <li aria-current="page" class="text-ink">{meta.label}</li>
+      </ol>
+    </nav>
+  </div>
+
+  <AssetFilters
+    client:load
+    category={category}
+    total={total}
+    initial={{
+      q: params.q,
+      region: params.region,
+      visibility: params.visibility,
+      priceMin: params.priceMin,
+      priceMax: params.priceMax,
+      sort: params.sort,
+    }}
+  />
+
+  <section class="container-page py-16 lg:py-20" aria-label={`Activos en ${meta.label}`}>
+    {assets.length === 0 ? (
+      <div class="mx-auto max-w-lg border border-stone px-10 py-20 text-center">
+        <p class="font-display text-[26px] text-ink">Sin resultados</p>
+        <p class="mt-4 text-[14px] leading-relaxed text-ink-muted">
+          No hay activos publicados que coincidan con estos criterios. Parte del
+          inventario es off-market y solo se comparte con miembros verificados.
+        </p>
+        <div class="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
+          <a href={`/collection/${category}`} class="btn-ghost">Quitar filtros</a>
+          <a href="/private-access" class="btn-primary">Request Private Access</a>
+        </div>
+      </div>
+    ) : (
+      <div class="grid gap-x-8 gap-y-16 sm:grid-cols-2 lg:grid-cols-3">
+        {assets.map((asset, index) => <AssetCard asset={asset} priority={index < 3} />)}
+      </div>
+    )}
+
+    {pageCount > 1 && (
+      <nav class="mt-20 flex items-center justify-center gap-2" aria-label="Paginación">
+        <a
+          href={pageHref(page - 1)}
+          aria-disabled={page === 1}
+          class:list={['btn-ghost px-5 py-2.5', page === 1 && 'pointer-events-none opacity-30']}
+        >
+          ← Anterior
+        </a>
+
+        <ol class="flex items-center gap-1 px-4">
+          {visiblePages.map((n, index) => (
+            <li class="flex items-center">
+              {index > 0 && visiblePages[index - 1] !== n - 1 && (
+                <span aria-hidden="true" class="px-2 text-ink-muted">…</span>
+              )}
+              <a
+                href={pageHref(n)}
+                aria-current={n === page ? 'page' : undefined}
+                class:list={[
+                  'inline-flex h-9 w-9 items-center justify-center text-[12px]',
+                  n === page ? 'bg-ink text-white' : 'text-ink-muted hover:text-ink',
+                ]}
+              >
+                {n}
+              </a>
+            </li>
+          ))}
+        </ol>
+
+        <a
+          href={pageHref(page + 1)}
+          aria-disabled={page === pageCount}
+          class:list={['btn-ghost px-5 py-2.5', page === pageCount && 'pointer-events-none opacity-30']}
+        >
+          Siguiente →
+        </a>
+      </nav>
+    )}
+  </section>
+
+  <section class="border-t border-stone bg-ivory">
+    <div class="container-page py-16">
+      <div class="grid gap-10 lg:grid-cols-3">
+        <div>
+          <p class="text-eyebrow uppercase tracking-luxus text-gold-dark">Nivel I · Público</p>
+          <p class="mt-3 text-[14px] leading-relaxed text-ink-muted">
+            Categoría, distrito aproximado, rango de precio, fotografía
+            seleccionada y descripción general.
+          </p>
+        </div>
+        <div>
+          <p class="text-eyebrow uppercase tracking-luxus text-gold-dark">Nivel II · Miembro verificado</p>
+          <p class="mt-3 text-[14px] leading-relaxed text-ink-muted">
+            Precio de referencia, ubicación real, material fotográfico reservado
+            y valorización, tras completar la verificación de identidad.
+          </p>
+        </div>
+        <div>
+          <p class="text-eyebrow uppercase tracking-luxus text-gold-dark">Nivel III · Deal Room</p>
+          <p class="mt-3 text-[14px] leading-relaxed text-ink-muted">
+            Documentación registral, financiera y legal, bajo NDA firmado y con
+            permisos por documento con fecha de vencimiento.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+</PublicLayout>

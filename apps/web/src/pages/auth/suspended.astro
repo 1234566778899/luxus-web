@@ -1,0 +1,30 @@
+---
+import AuthLayout from '../../layouts/AuthLayout.astro';
+import { BRAND } from '@luxus/shared';
+
+const reason = Astro.locals.session?.profile.suspended_reason;
+---
+
+<AuthLayout title="Cuenta suspendida" heading="Cuenta suspendida">
+  <div class="border border-stone bg-ivory p-8">
+    <p class="text-[14.5px] leading-relaxed text-ink-muted">
+      Su cuenta se encuentra suspendida y no puede acceder a la zona privada.
+      Los permisos documentales asociados han sido revocados.
+    </p>
+
+    {reason && (
+      <p class="mt-5 border-l-2 border-gold pl-4 text-[14px] leading-relaxed text-ink">
+        {reason}
+      </p>
+    )}
+
+    <p class="mt-6 text-[14px] leading-relaxed text-ink-muted">
+      Si considera que se trata de un error, escriba a{' '}
+      <a href={`mailto:${BRAND.email}`} class="link-underline text-ink">{BRAND.email}</a>.
+    </p>
+  </div>
+
+  <form method="POST" action="/auth/signout" class="mt-8">
+    <button type="submit" class="btn-outline w-full">Cerrar sesión</button>
+  </form>
+</AuthLayout>

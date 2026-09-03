@@ -1,0 +1,314 @@
+---
+import PublicLayout from '../layouts/PublicLayout.astro';
+import AssetCard from '../components/public/AssetCard.astro';
+import SectionHeading from '../components/public/SectionHeading.astro';
+import {
+  BRAND, CATEGORY_META, CATEGORY_ORDER, TRUST_PILLARS, formatApproximateLocation,
+} from '@luxus/shared';
+import {
+  fetchCategoryCounts, fetchFeaturedAssets, fetchLatestAssets, fetchPublishedArticles,
+} from '../lib/queries';
+import { coverUrl } from '../lib/media';
+
+const supabase = Astro.locals.supabase;
+
+const [featured, latest, counts, articles] = await Promise.all([
+  fetchFeaturedAssets(supabase, 6),
+  fetchLatestAssets(supabase, 4),
+  fetchCategoryCounts(supabase),
+  fetchPublishedArticles(supabase, 3),
+]);
+
+const hero = featured[0] ?? latest[0] ?? null;
+const heroImage = hero
+  ? coverUrl(hero.asset_media, hero.slug)
+  : 'https://picsum.photos/seed/luxus-peru-hero/2400/1400';
+
+const featuredGrid = featured.slice(1, 4);
+const offMarketCount = Object.values(counts).reduce((a, b) => a + b, 0);
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: BRAND.name,
+  url: Astro.site?.toString(),
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: `${Astro.site}collection/real-estate?q={search_term_string}`,
+    'query-input': 'required name=search_term_string',
+  },
+};
+---
+
+<PublicLayout
+  title="LUXUS PERÚ — Exceptional Assets. Private Transactions."
+  description="Marketplace privado de activos de ultra alto patrimonio en Perú: propiedades, empresas, vehículos de colección, yates y aeronaves. Verificado, confidencial, curado."
+  image={heroImage}
+  transparentHeader
+  jsonLd={jsonLd}
+>
+  <!-- ══════════════════════════════════════════════════════════ HERO -->
+  <!-- Estructura tomada de un marketplace de lujo de referencia: foto a
+       pantalla completa, titular a la izquierda con una línea de cifras en
+       versalitas debajo (en vez de párrafo + botones), controles de
+       carrusel arriba a la derecha de esa línea, y la ficha del activo en
+       portada como leyenda en la esquina inferior derecha. -->
+  <section class="relative h-[85vh] min-h-[560px] w-full overflow-hidden bg-ink" aria-labelledby="hero-title">
+    <img
+      src={heroImage}
+      alt=""
+      aria-hidden="true"
+      fetchpriority="high"
+      decoding="async"
+      width={2400}
+      height={1400}
+      class="absolute inset-0 h-full w-full object-cover opacity-90"
+    />
+    <div class="absolute inset-0 scrim" aria-hidden="true"></div>
+
+    <div class="container-page relative flex h-full flex-col justify-end pb-10 lg:pb-14">
+      <div class="max-w-2xl animate-fade-up">
+        <h1
+          id="hero-title"
+          class="font-display text-[40px] font-normal leading-[1.08] text-white sm:text-[56px] lg:text-[64px]"
+        >
+          Activos Excepcionales.<br />
+          <span class="text-gold-light">Transacciones Privadas.</span>
+        </h1>
+      </div>
+
+      <div class="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-white/20 pt-5">
+        <p class="text-[11px] uppercase tracking-[0.14em] text-white/70">
+          Una búsqueda · {offMarketCount}+ activos · Miembros verificados · Perú
+        </p>
+
+        <div class="flex items-center gap-4" aria-hidden="true">
+          <div class="flex items-center gap-1.5">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <span class:list={['h-[2px] w-6', i === 0 ? 'bg-white' : 'bg-white/30']} />
+            ))}
+          </div>
+          <div class="hidden items-center gap-2 sm:flex">
+            <span class="flex h-8 w-8 items-center justify-center rounded-full border border-white/30 text-white/70">
+              <svg class="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M9.5 3 L4.5 8 L9.5 13" stroke-linecap="square" /></svg>
+            </span>
+            <span class="flex h-8 w-8 items-center justify-center rounded-full border border-white/30 text-white/70">
+              <svg class="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M6.5 3 L11.5 8 L6.5 13" stroke-linecap="square" /></svg>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {hero && (
+        <a
+          href={`/asset/${hero.slug}`}
+          class="mt-4 inline-block self-end text-right text-[11px] uppercase tracking-[0.1em] text-white/60 transition-colors hover:text-white"
+        >
+          {hero.title} · {formatApproximateLocation(hero)}
+        </a>
+      )}
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════ CATEGORÍAS -->
+  <!-- Mismo seed de foto que usa la portada de cada colección
+       (`CollectionHero`), para que la categoría se lea como la misma
+       identidad visual al pasar de una sección a la otra. -->
+  <section class="border-b border-stone bg-white" aria-label="Categorías de activos">
+    <div class="container-page py-16 lg:py-20">
+      <ul class="grid grid-cols-2 gap-4 lg:grid-cols-5">
+        {CATEGORY_ORDER.map((category) => {
+          const meta = CATEGORY_META[category];
+          const count = counts[category] ?? 0;
+          const image = `https://picsum.photos/seed/luxus-collection-${category}/800/1000`;
+          return (
+            <li>
+              <a href={`/collection/${category}`} class="group block">
+                <div class="relative aspect-[3/4] overflow-hidden bg-stone">
+                  <img
+                    src={image}
+                    alt=""
+                    aria-hidden="true"
+                    loading="lazy"
+                    decoding="async"
+                    width={800}
+                    height={1000}
+                    class="h-full w-full object-cover transition-transform duration-[900ms] ease-luxus group-hover:scale-[1.05]"
+                  />
+                  <div class="absolute inset-0 scrim-soft" aria-hidden="true"></div>
+                  <div class="absolute inset-x-0 bottom-0 p-5">
+                    <p class="font-display text-[19px] leading-tight text-white">{meta.label}</p>
+                    <p class="mt-2 text-[11px] uppercase tracking-luxus text-white/70 transition-colors group-hover:text-gold-light">
+                      {count} {count === 1 ? 'activo' : 'activos'} →
+                    </p>
+                  </div>
+                </div>
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════ DESTACADOS -->
+  {featuredGrid.length > 0 && (
+    <section class="container-page py-20 lg:py-28" aria-labelledby="featured-title">
+      <SectionHeading
+        eyebrow="Selección del equipo"
+        title="Activos destacados"
+        description="Piezas con verificación completa y documentación disponible en Deal Room."
+        href="/collection/real-estate"
+        linkLabel="Ver toda la colección"
+      />
+
+      <div class="mt-14 grid gap-x-8 gap-y-14 sm:grid-cols-2 lg:grid-cols-3">
+        {featuredGrid.map((asset, index) => (
+          <AssetCard asset={asset} priority={index === 0} />
+        ))}
+      </div>
+    </section>
+  )}
+
+  <!-- ══════════════════════════════════════════════════ CONFIANZA -->
+  <section class="bg-ivory py-20 lg:py-28" aria-labelledby="trust-title">
+    <div class="container-page">
+      <SectionHeading
+        eyebrow="Por qué LUXUS"
+        title="Verified · Confidential · Curated · Secure"
+        description="Cuatro compromisos que gobiernan cada publicación y cada transacción de la plataforma."
+        align="center"
+      />
+
+      <ul class="mt-16 grid gap-px overflow-hidden border border-stone bg-stone sm:grid-cols-2 lg:grid-cols-4">
+        {TRUST_PILLARS.map((pillar, index) => (
+          <li class="bg-ivory p-8 lg:p-10">
+            <p class="font-display text-[13px] text-gold-dark">
+              {String(index + 1).padStart(2, '0')}
+            </p>
+            <h3 class="mt-5 font-display text-[24px] text-ink">{pillar.title}</h3>
+            <p class="mt-3 text-[14px] leading-relaxed text-ink-muted">{pillar.body}</p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════ PRIVATE MARKET -->
+  <section class="relative overflow-hidden bg-ink text-white" aria-labelledby="private-market-title">
+    <img
+      src="https://picsum.photos/seed/luxus-private-market/2000/1200"
+      alt=""
+      aria-hidden="true"
+      loading="lazy"
+      decoding="async"
+      class="absolute inset-0 h-full w-full object-cover opacity-40"
+    />
+    <!-- Degradado fijo, no la opacidad de la foto: así el texto siempre
+         queda legible sin importar qué tan clara sea la zona de la
+         fotografía que caiga detrás de él. -->
+    <div class="absolute inset-0 scrim-left" aria-hidden="true"></div>
+    <div class="container-page relative py-24 lg:py-32">
+      <div class="max-w-2xl">
+        <p class="text-eyebrow uppercase tracking-wider2 text-gold-light">Private Market</p>
+        <h2 id="private-market-title" class="mt-5 font-display text-[36px] leading-tight sm:text-[46px]">
+          Lo que nunca se publica
+        </h2>
+        <p class="mt-6 text-[16px] leading-relaxed text-white/70 text-pretty">
+          Una parte del inventario no aparece en ninguna colección. Son mandatos
+          off-market que se comparten con un número reducido de miembros
+          verificados, bajo acuerdo específico y sin exposición pública del
+          activo ni de sus titulares.
+        </p>
+
+        <dl class="mt-12 grid grid-cols-2 gap-8 border-t border-white/[15%] pt-8 sm:grid-cols-3">
+          <div>
+            <dt class="text-eyebrow uppercase tracking-luxus text-white/[45%]">Activos listados</dt>
+            <dd class="mt-2 font-display text-[30px]">{offMarketCount}</dd>
+          </div>
+          <div>
+            <dt class="text-eyebrow uppercase tracking-luxus text-white/[45%]">Contrapartes por mandato</dt>
+            <dd class="mt-2 font-display text-[30px]">&lt; 5</dd>
+          </div>
+          <div>
+            <dt class="text-eyebrow uppercase tracking-luxus text-white/[45%]">Acceso</dt>
+            <dd class="mt-2 font-display text-[30px]">Por invitación</dd>
+          </div>
+        </dl>
+
+        <a href="/membership" class="btn-light mt-12">Conocer las membresías</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════ NOVEDADES -->
+  {latest.length > 0 && (
+    <section class="container-page py-20 lg:py-28" aria-labelledby="latest-title">
+      <SectionHeading
+        eyebrow="Incorporaciones recientes"
+        title="Últimos activos publicados"
+        href="/collection/companies"
+        linkLabel="Ver empresas"
+      />
+      <div class="mt-14 grid gap-x-8 gap-y-14 sm:grid-cols-2 lg:grid-cols-4">
+        {latest.map((asset) => <AssetCard asset={asset} />)}
+      </div>
+    </section>
+  )}
+
+  <!-- ═════════════════════════════════════════════ INTELLIGENCE -->
+  {articles.length > 0 && (
+    <section class="border-t border-stone bg-white py-20 lg:py-28" aria-labelledby="intel-title">
+      <div class="container-page">
+        <SectionHeading
+          eyebrow="Intelligence"
+          title="Lectura del mercado peruano"
+          description="Análisis propio sobre precios, plazos de transacción y marco registral."
+          href="/intelligence"
+          linkLabel="Todos los reportes"
+        />
+
+        <div class="mt-14 grid gap-10 lg:grid-cols-3">
+          {articles.map((article) => (
+            <article class="group border-t border-ink pt-6">
+              <p class="eyebrow">
+                {article.category ?? 'Reporte'}
+                {article.is_members_only && <span class="ml-2 text-gold-dark">· Reservado</span>}
+              </p>
+              <h3 class="mt-4 font-display text-[23px] leading-snug">
+                <a href={`/intelligence/${article.slug}`} class="link-underline">{article.title}</a>
+              </h3>
+              <p class="mt-3 line-clamp-3 text-[14px] leading-relaxed text-ink-muted">
+                {article.excerpt}
+              </p>
+              <p class="mt-5 text-[12px] text-ink-muted/80">
+                {article.author_name} · {article.reading_time} min de lectura
+              </p>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- ═══════════════════════════════════════════════════ CTA -->
+  <section class="border-t border-stone bg-ivory" aria-labelledby="cta-title">
+    <div class="container-page py-24 lg:py-32">
+      <div class="mx-auto max-w-2xl text-center">
+        <p class="text-eyebrow uppercase tracking-wider2 text-gold-dark">Acceso por invitación</p>
+        <h2 id="cta-title" class="mt-5 font-display text-[36px] leading-tight sm:text-[46px]">
+          El acceso se concede, no se compra
+        </h2>
+        <p class="mt-6 text-[16px] leading-relaxed text-ink-muted text-pretty">
+          Cada solicitud se evalúa individualmente. Al aprobarse, se emite una
+          invitación personal y comienza el proceso de verificación de identidad
+          y origen de fondos.
+        </p>
+        <div class="mt-12 flex flex-col justify-center gap-3 sm:flex-row">
+          <a href="/private-access" class="btn-primary">Request Private Access</a>
+          <a href="/sell" class="btn-outline">Presentar un activo</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</PublicLayout>

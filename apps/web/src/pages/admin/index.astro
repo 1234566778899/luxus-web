@@ -1,0 +1,161 @@
+---
+import DashboardShell from '../../components/private/DashboardShell.astro';
+import StatCard from '../../components/private/StatCard.astro';
+import { DEAL_STAGE_META, formatCents, formatUsdCompact } from '@luxus/shared';
+import type { DealStage } from '@luxus/shared';
+import { requireRole } from '../../lib/auth';
+import { apiFetch } from '../../lib/api';
+
+const guard = requireRole(Astro, 'admin');
+if (guard instanceof Response) return guard;
+const session = guard;
+
+interface Metrics {
+  listedGmvUsd: number;
+  publishedAssets: number;
+  pendingReviewAssets: number;
+  verifiedUsers: number;
+  totalUsers: number;
+  pendingAccessRequests: number;
+  pendingKycCases: number;
+  dealsByStage: { stage: string; count: number }[];
+  membershipRevenueCents: number;
+  brokerRevenueCents: number;
+  listingFeeRevenueCents: number;
+}
+
+let metrics: Metrics | null = null;
+try {
+  metrics = await apiFetch<Metrics>('/v1/admin/metrics', { token: session.accessToken });
+} catch {
+  metrics = null;
+}
+
+const activeDeals = (metrics?.dealsByStage ?? []).filter(
+  (d) => !['declined', 'withdrawn', 'expired', 'closed'].includes(d.stage),
+);
+const maxDealCount = Math.max(1, ...activeDeals.map((d) => d.count));
+---
+
+<DashboardShell title="Panel de administración" session={session}>
+  <div class="mb-9">
+    <p class="text-eyebrow uppercase tracking-luxus text-ink-muted">
+      {new Intl.DateTimeFormat('es-PE', { dateStyle: 'full' }).format(new Date())}
+    </p>
+    <h1 class="mt-3 font-display text-[34px] leading-tight">Resumen</h1>
+  </div>
+
+  {!metrics ? (
+    <p class="border border-stone bg-white p-8 text-[14px] text-ink-muted">
+      No se pudieron cargar las métricas. Intente recargar la página.
+    </p>
+  ) : (
+    <>
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          label="GMV listado"
+          value={formatUsdCompact(metrics.listedGmvUsd)}
+          hint="Punto medio del rango público publicado"
+        />
+        <StatCard
+          label="Activos publicados"
+          value={metrics.publishedAssets}
+          hint={`${metrics.pendingReviewAssets} en cola de verificación`}
+          href="/admin/assets"
+          tone={metrics.pendingReviewAssets > 0 ? 'gold' : 'default'}
+        />
+        <StatCard
+          label="Usuarios verificados"
+          value={`${metrics.verifiedUsers} / ${metrics.totalUsers}`}
+          hint="KYC aprobado sobre el total"
+          href="/admin/users"
+        />
+        <StatCard
+          label="Solicitudes pendientes"
+          value={metrics.pendingAccessRequests}
+          tone={metrics.pendingAccessRequests > 0 ? 'gold' : 'default'}
+          hint="Private Access por revisar"
+          href="/admin/access-requests"
+        />
+      </div>
+
+      <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          label="KYC en cola"
+          value={metrics.pendingKycCases}
+          tone={metrics.pendingKycCases > 0 ? 'gold' : 'default'}
+          hint="Expedientes por decidir"
+          href="/admin/kyc"
+        />
+        <StatCard
+          label="Ingresos por membresías"
+          value={formatCents(metrics.membershipRevenueCents)}
+          hint="Suscripciones cobradas"
+        />
+        <StatCard
+          label="Ingresos por publicación"
+          value={formatCents(metrics.listingFeeRevenueCents)}
+          hint="Listing fees cobrados"
+        />
+        <StatCard
+          label="Auditoría"
+          value="Ver registro"
+          hint="Actividad de toda la plataforma"
+          href="/admin/audit"
+        />
+      </div>
+
+      <!-- Deals por etapa -->
+      <section class="mt-12" aria-labelledby="deals-title">
+        <h2 id="deals-title" class="font-display text-[24px]">Deals activos por etapa</h2>
+
+        {activeDeals.length === 0 ? (
+          <p class="mt-5 border border-stone bg-white p-8 text-[14px] text-ink-muted">
+            No hay Deal Rooms activos en este momento.
+          </p>
+        ) : (
+          <ul class="mt-5 space-y-3 border border-stone bg-white p-6">
+            {activeDeals.map((entry) => {
+              const meta = DEAL_STAGE_META[entry.stage as DealStage];
+              return (
+                <li class="flex items-center gap-4">
+                  <span class="w-40 shrink-0 text-[13px] text-ink-muted">
+                    {meta?.label ?? entry.stage}
+                  </span>
+                  <div class="h-2 flex-1 bg-stone">
+                    <div
+                      class="h-full bg-gold"
+                      style={`width: ${(entry.count / maxDealCount) * 100}%`}
+                    />
+                  </div>
+                  <span class="w-8 shrink-0 text-right text-[13px] text-ink">{entry.count}</span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
+      <!-- Accesos rápidos -->
+      <section class="mt-12" aria-labelledby="quick-title">
+        <h2 id="quick-title" class="font-display text-[24px]">Accesos rápidos</h2>
+        <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            { href: '/admin/access-requests', label: 'Solicitudes de acceso', desc: 'Aprobar o rechazar admisiones' },
+            { href: '/admin/assets', label: 'Verificación de activos', desc: 'Checklist por categoría' },
+            { href: '/admin/kyc', label: 'KYC y screening', desc: 'Revisión manual de casos' },
+            { href: '/admin/users', label: 'Usuarios y roles', desc: 'Suspensiones y niveles' },
+            { href: '/admin/intelligence', label: 'Intelligence', desc: 'CMS de artículos' },
+            { href: '/admin/crm', label: 'CRM', desc: 'Pipeline de leads' },
+            { href: '/admin/audit', label: 'Auditoría', desc: 'Registro global con exportación' },
+          ].map((item) => (
+            <a href={item.href} class="block border border-stone bg-white p-6 transition-colors hover:border-ink">
+              <p class="font-display text-[18px]">{item.label}</p>
+              <p class="mt-1.5 text-[12.5px] text-ink-muted">{item.desc}</p>
+            </a>
+          ))}
+        </div>
+      </section>
+    </>
+  )}
+</DashboardShell>

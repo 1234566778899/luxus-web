@@ -1,0 +1,48 @@
+---
+interface Props {
+  eyebrow?: string;
+  title: string;
+  description?: string;
+  href?: string;
+  linkLabel?: string;
+  align?: 'left' | 'center';
+  tone?: 'dark' | 'light';
+}
+
+const {
+  eyebrow, title, description, href, linkLabel = 'Ver todo',
+  align = 'left', tone = 'dark',
+} = Astro.props;
+
+const muted = tone === 'light' ? 'text-white/60' : 'text-ink-muted';
+const strong = tone === 'light' ? 'text-white' : 'text-ink';
+---
+
+<div
+  class:list={[
+    'flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between',
+    align === 'center' && 'sm:flex-col sm:items-center sm:text-center',
+  ]}
+>
+  <div class:list={['max-w-2xl', align === 'center' && 'mx-auto']}>
+    {eyebrow && <p class:list={['text-eyebrow uppercase tracking-luxus', muted]}>{eyebrow}</p>}
+    <h2 class:list={['mt-3 font-display text-[30px] leading-tight sm:text-[38px]', strong]}>
+      {title}
+    </h2>
+    {description && (
+      <p class:list={['mt-4 text-[15px] leading-relaxed text-pretty', muted]}>{description}</p>
+    )}
+  </div>
+
+  {href && (
+    <a
+      href={href}
+      class:list={[
+        'link-underline shrink-0 text-[11px] uppercase tracking-luxus',
+        tone === 'light' ? 'text-white/80 hover:text-white' : 'text-ink hover:text-ink',
+      ]}
+    >
+      {linkLabel} →
+    </a>
+  )}
+</div>

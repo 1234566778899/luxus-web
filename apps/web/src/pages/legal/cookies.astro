@@ -1,0 +1,67 @@
+---
+import LegalLayout from '../../layouts/LegalLayout.astro';
+
+const sections = [
+  { id: 'que-son', label: 'Qué son las cookies' },
+  { id: 'cuales', label: 'Cookies que utilizamos' },
+  { id: 'terceros', label: 'Cookies de terceros' },
+  { id: 'gestion', label: 'Cómo gestionarlas' },
+];
+---
+
+<LegalLayout
+  title="Política de Cookies"
+  description="Cookies utilizadas por LUXUS PERÚ y cómo gestionarlas."
+  updated="2 de septiembre de 2026"
+  sections={sections}
+>
+  <h2 id="que-son">1. Qué son las cookies</h2>
+  <p>
+    Son pequeños archivos que un sitio web almacena en su navegador para
+    recordar información entre visitas. LUXUS PERÚ utiliza únicamente las
+    estrictamente necesarias para el funcionamiento y la seguridad del servicio.
+  </p>
+
+  <h2 id="cuales">2. Cookies que utilizamos</h2>
+  <table>
+    <thead>
+      <tr><th>Cookie</th><th>Finalidad</th><th>Duración</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>sb-*-auth-token</code></td>
+        <td>Mantiene la sesión iniciada y permite renovar el token de acceso.</td>
+        <td>Sesión / hasta 24 h</td>
+      </tr>
+      <tr>
+        <td><code>sb-*-auth-token-code-verifier</code></td>
+        <td>Protege el flujo de autenticación frente a interceptación (PKCE).</td>
+        <td>Temporal</td>
+      </tr>
+    </tbody>
+  </table>
+  <p>
+    Todas se emiten con los atributos <code>HttpOnly</code>, <code>Secure</code> y
+    {' '}<code>SameSite=Lax</code>. Al no ser cookies de perfilado ni publicitarias, no
+    requieren consentimiento previo conforme a la normativa aplicable, aunque
+    las declaramos por transparencia.
+  </p>
+
+  <h2 id="terceros">3. Cookies de terceros</h2>
+  <p>
+    No utilizamos cookies publicitarias, de redes sociales ni de analítica de
+    terceros. Las tipografías se sirven desde Google Fonts, que puede registrar
+    la dirección IP de la solicitud del archivo de fuente.
+  </p>
+  <p>
+    Al utilizar el portal de pagos, el proveedor de pasarela puede establecer sus
+    propias cookies en su dominio, sujetas a su respectiva política.
+  </p>
+
+  <h2 id="gestion">4. Cómo gestionarlas</h2>
+  <p>
+    Puede eliminar o bloquear las cookies desde la configuración de su navegador.
+    Tenga en cuenta que bloquear las cookies de sesión impedirá acceder a la
+    zona privada de la plataforma.
+  </p>
+</LegalLayout>

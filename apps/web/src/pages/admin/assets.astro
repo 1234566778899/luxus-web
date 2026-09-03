@@ -1,0 +1,115 @@
+---
+import DashboardShell from '../../components/private/DashboardShell.astro';
+import AssetVerificationReview from '../../components/islands/AssetVerificationReview.tsx';
+import { CATEGORY_META, formatPriceRange } from '@luxus/shared';
+import type { AssetCategory } from '@luxus/shared';
+import { requireRole } from '../../lib/auth';
+import { apiFetch } from '../../lib/api';
+
+const guard = requireRole(Astro, 'admin');
+if (guard instanceof Response) return guard;
+const session = guard;
+
+interface QueueAsset {
+  id: string;
+  slug: string;
+  reference_code: string;
+  category: AssetCategory;
+  title: string;
+  district: string | null;
+  region: string | null;
+  price_min: number | null;
+  price_max: number | null;
+  price_on_request: boolean;
+  status: string;
+  tier: string;
+  verification_notes: string | null;
+  created_at: string;
+  profiles: { id: string; full_name: string | null; email: string } | null;
+  brokers: { company_name: string; is_verified: boolean } | null;
+  asset_verification_items: {
+    id: string;
+    item_key: string;
+    label: string;
+    authority: string | null;
+    required: boolean;
+    status: string;
+    notes: string | null;
+  }[];
+}
+
+let assets: QueueAsset[] = [];
+try {
+  const data = await apiFetch<{ assets: QueueAsset[] }>('/v1/admin/assets/queue', {
+    token: session.accessToken,
+  });
+  assets = data.assets;
+} catch {
+  assets = [];
+}
+---
+
+<DashboardShell title="Verificación de activos" session={session}>
+  <div class="mb-8">
+    <h1 class="font-display text-[32px] leading-tight">Cola de verificación</h1>
+    <p class="mt-3 max-w-2xl text-[14px] leading-relaxed text-ink-muted">
+      Revise el checklist documental por categoría antes de publicar. Al
+      publicar se cotiza automáticamente la tarifa de publicación.
+    </p>
+  </div>
+
+  {assets.length === 0 ? (
+    <p class="border border-stone bg-white p-8 text-[14px] text-ink-muted">
+      No hay activos pendientes de revisión.
+    </p>
+  ) : (
+    <div class="space-y-10">
+      {assets.map((asset) => (
+        <div class="border border-stone bg-ivory p-6">
+          <div class="flex flex-wrap items-start justify-between gap-6">
+            <div>
+              <p class="text-[11px] uppercase tracking-luxus text-ink-muted">
+                {CATEGORY_META[asset.category].label} · {asset.reference_code} ·{' '}
+                {asset.status === 'changes_requested' ? 'Cambios solicitados' : 'Nuevo'}
+              </p>
+              <p class="mt-2 font-display text-[22px]">{asset.title}</p>
+              <p class="mt-1 text-[13px] text-ink-muted">
+                {[asset.district, asset.region].filter(Boolean).join(', ')} ·{' '}
+                {formatPriceRange(asset)} · {asset.tier === 'signature' ? 'Signature' : 'Private'}
+              </p>
+              <p class="mt-2 text-[13px] text-ink-muted">
+                Vendedor: {asset.profiles?.full_name ?? asset.profiles?.email ?? '—'}
+                {asset.brokers && ` · Bróker: ${asset.brokers.company_name}${asset.brokers.is_verified ? ' (Verified)' : ''}`}
+              </p>
+              {asset.verification_notes && (
+                <p class="mt-2 border-l-2 border-stone-dark pl-3 text-[12.5px] italic text-ink-muted">
+                  Última observación: {asset.verification_notes}
+                </p>
+              )}
+            </div>
+            <a href={`/asset/${asset.slug}`} target="_blank" rel="noopener" class="link-underline shrink-0 text-[11px] uppercase tracking-luxus">
+              Ver ficha ↗
+            </a>
+          </div>
+
+          <div class="mt-6">
+            <AssetVerificationReview
+              client:visible
+              assetId={asset.id}
+              assetTitle={asset.title}
+              checklist={asset.asset_verification_items.map((i) => ({
+                id: i.id,
+                item_key: i.item_key,
+                label: i.label,
+                authority: i.authority,
+                required: i.required,
+                status: i.status as never,
+                notes: i.notes,
+              }))}
+            />
+          </div>
+        </div>
+      ))}
+    </div>
+  )}
+</DashboardShell>

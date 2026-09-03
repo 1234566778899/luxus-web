@@ -1,0 +1,159 @@
+---
+import PublicLayout from '../layouts/PublicLayout.astro';
+import { BROKER_PLANS, LISTING_FEE_BANDS, MEMBERSHIP_PLANS, formatCents } from '@luxus/shared';
+
+const session = Astro.locals.session;
+---
+
+<PublicLayout
+  title="Membresías"
+  description="Membresías de comprador y suscripciones de bróker en LUXUS PERÚ. Acceso anticipado, activos off-market y concierge de transacción."
+>
+  <section class="border-b border-stone bg-ivory">
+    <div class="container-page py-16 lg:py-24">
+      <div class="max-w-2xl">
+        <p class="text-eyebrow uppercase tracking-wider2 text-gold-dark">Membresías</p>
+        <h1 class="mt-5 font-display text-[42px] leading-tight sm:text-[54px]">
+          Acceso estructurado al mercado privado
+        </h1>
+        <p class="mt-7 text-[16px] leading-relaxed text-ink-muted text-pretty">
+          La membresía no sustituye la admisión ni la verificación de identidad:
+          determina el alcance del acceso una vez concedido.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="container-page py-16 lg:py-20" aria-labelledby="buyer-plans">
+    <h2 id="buyer-plans" class="font-display text-[30px]">Compradores y family offices</h2>
+
+    <div class="mt-12 grid gap-px overflow-hidden border border-stone bg-stone lg:grid-cols-3">
+      {MEMBERSHIP_PLANS.map((plan) => (
+        <div class:list={['flex flex-col p-8 lg:p-10', plan.highlight ? 'bg-ink text-white' : 'bg-white']}>
+          {plan.highlight && (
+            <p class="text-eyebrow uppercase tracking-luxus text-gold-light">Más solicitado</p>
+          )}
+          <h3 class:list={['font-display text-[26px]', plan.highlight ? 'mt-3 text-white' : 'text-ink']}>
+            {plan.name}
+          </h3>
+          <p class:list={['mt-3 text-[14px] leading-relaxed', plan.highlight ? 'text-white/[65%]' : 'text-ink-muted']}>
+            {plan.tagline}
+          </p>
+
+          <p class="mt-8 font-display text-[38px] leading-none">
+            {formatCents(plan.amountCents)}
+            <span class:list={['ml-2 text-[13px]', plan.highlight ? 'text-white/50' : 'text-ink-muted']}>
+              / año
+            </span>
+          </p>
+
+          <ul class="mt-8 flex-1 space-y-3">
+            {plan.benefits.map((benefit) => (
+              <li class:list={['flex gap-3 text-[14px] leading-relaxed', plan.highlight ? 'text-white/80' : 'text-ink-muted']}>
+                <span aria-hidden="true" class:list={[plan.highlight ? 'text-gold-light' : 'text-gold-dark']}>—</span>
+                {benefit}
+              </li>
+            ))}
+          </ul>
+
+          <a
+            href={session ? `/dashboard/billing?plan=${plan.code}` : '/private-access'}
+            class:list={['mt-10', plan.highlight ? 'btn-gold' : 'btn-outline']}
+          >
+            {session ? 'Contratar' : 'Solicitar acceso'}
+          </a>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <section class="border-t border-stone bg-ivory py-16 lg:py-20" aria-labelledby="broker-plans">
+    <div class="container-page">
+      <h2 id="broker-plans" class="font-display text-[30px]">Brókers y asesores</h2>
+      <p class="mt-4 max-w-2xl text-[15px] leading-relaxed text-ink-muted">
+        Los planes de bróker determinan cuántos activos puede mantener publicados
+        y su posicionamiento dentro de las colecciones.
+      </p>
+
+      <div class="mt-12 grid gap-px overflow-hidden border border-stone bg-stone lg:grid-cols-3">
+        {BROKER_PLANS.map((plan) => (
+          <div class="flex flex-col bg-ivory p-8 lg:p-10">
+            <h3 class="font-display text-[24px]">{plan.name}</h3>
+            <p class="mt-3 text-[14px] leading-relaxed text-ink-muted">{plan.tagline}</p>
+
+            <p class="mt-8 font-display text-[34px] leading-none">
+              {formatCents(plan.amountCents)}
+              <span class="ml-2 text-[13px] text-ink-muted">/ mes</span>
+            </p>
+            <p class="mt-2 text-[12px] uppercase tracking-luxus text-ink-muted">
+              {plan.listingQuota ? `Hasta ${plan.listingQuota} activos` : 'Activos ilimitados'}
+            </p>
+
+            <ul class="mt-8 flex-1 space-y-3">
+              {plan.benefits.map((benefit) => (
+                <li class="flex gap-3 text-[14px] leading-relaxed text-ink-muted">
+                  <span aria-hidden="true" class="text-gold-dark">—</span>
+                  {benefit}
+                </li>
+              ))}
+            </ul>
+
+            <a
+              href={session ? `/dashboard/billing?plan=${plan.code}` : '/private-access'}
+              class="btn-outline mt-10"
+            >
+              {session ? 'Contratar' : 'Solicitar acceso'}
+            </a>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="container-page py-16 lg:py-20" aria-labelledby="listing-fees">
+    <div class="grid gap-12 lg:grid-cols-12">
+      <div class="lg:col-span-5">
+        <h2 id="listing-fees" class="font-display text-[30px]">Tarifas de publicación</h2>
+        <p class="mt-5 text-[15px] leading-relaxed text-ink-muted">
+          Se cotizan por activo y se devengan al aprobarse la publicación, una vez
+          superada la verificación documental.
+        </p>
+      </div>
+
+      <div class="lg:col-span-7">
+        <dl class="divide-y divide-stone border-y border-stone">
+          <div class="flex items-baseline justify-between gap-6 py-6">
+            <div>
+              <dt class="font-display text-[21px]">Private</dt>
+              <dd class="mt-1.5 text-[14px] leading-relaxed text-ink-muted">
+                Verificación estándar, ficha curada y difusión dentro de la
+                colección correspondiente.
+              </dd>
+            </div>
+            <p class="shrink-0 font-display text-[19px]">
+              {formatCents(LISTING_FEE_BANDS.private.minCents)} – {formatCents(LISTING_FEE_BANDS.private.maxCents)}
+            </p>
+          </div>
+          <div class="flex items-baseline justify-between gap-6 py-6">
+            <div>
+              <dt class="font-display text-[21px]">Signature</dt>
+              <dd class="mt-1.5 text-[14px] leading-relaxed text-ink-muted">
+                Producción fotográfica, dossier bilingüe, posicionamiento
+                destacado y difusión dirigida a miembros con mandato afín.
+              </dd>
+            </div>
+            <p class="shrink-0 font-display text-[19px]">
+              {formatCents(LISTING_FEE_BANDS.signature.minCents)} – {formatCents(LISTING_FEE_BANDS.signature.maxCents)}
+            </p>
+          </div>
+        </dl>
+
+        <p class="mt-8 border-l-2 border-gold bg-ivory px-5 py-4 text-[13px] leading-relaxed text-ink-muted">
+          Las comisiones de éxito por transacción cerrada, cuando se pacten, se
+          facturan de forma independiente fuera de la plataforma. LUXUS PERÚ no
+          procesa ni retiene fondos de la transacción.
+        </p>
+      </div>
+    </div>
+  </section>
+</PublicLayout>

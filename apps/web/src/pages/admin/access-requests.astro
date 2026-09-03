@@ -1,0 +1,142 @@
+---
+import DashboardShell from '../../components/private/DashboardShell.astro';
+import AccessRequestReview from '../../components/islands/AccessRequestReview.tsx';
+import { formatDate } from '@luxus/shared';
+import { requireRole } from '../../lib/auth';
+import { apiFetch } from '../../lib/api';
+
+const guard = requireRole(Astro, 'admin');
+if (guard instanceof Response) return guard;
+const session = guard;
+
+const statusParam = (Astro.url.searchParams.get('status') ?? 'pending') as
+  'pending' | 'approved' | 'rejected';
+
+interface AccessRequest {
+  id: string;
+  applicant_profile: string;
+  full_name: string;
+  email: string;
+  phone: string | null;
+  company: string | null;
+  country: string | null;
+  city: string | null;
+  interest: string | null;
+  budget_range: string | null;
+  message: string | null;
+  status: string;
+  review_notes: string | null;
+  created_at: string;
+}
+
+let requests: AccessRequest[] = [];
+try {
+  const data = await apiFetch<{ requests: AccessRequest[] }>(
+    `/v1/admin/access-requests?status=${statusParam}`,
+    { token: session.accessToken },
+  );
+  requests = data.requests;
+} catch {
+  requests = [];
+}
+
+const PROFILE_LABEL: Record<string, string> = {
+  buyer: 'Comprador',
+  family_office: 'Family office',
+  seller: 'Propietario / vendedor',
+  broker: 'Bróker o asesor',
+};
+
+const tabs = [
+  { key: 'pending', label: 'Pendientes' },
+  { key: 'approved', label: 'Aprobadas' },
+  { key: 'rejected', label: 'Rechazadas' },
+];
+---
+
+<DashboardShell title="Solicitudes de acceso" session={session}>
+  <div class="mb-8">
+    <h1 class="font-display text-[32px] leading-tight">Solicitudes de Private Access</h1>
+    <p class="mt-3 max-w-2xl text-[14px] leading-relaxed text-ink-muted">
+      Aprobar emite de inmediato una invitación de acceso por correo. El
+      registro abierto está deshabilitado: esta es la única puerta de entrada.
+    </p>
+  </div>
+
+  <nav class="mb-6 flex gap-1 border-b border-stone" aria-label="Filtro por estado">
+    {tabs.map((tab) => (
+      <a
+        href={`/admin/access-requests?status=${tab.key}`}
+        aria-current={statusParam === tab.key ? 'page' : undefined}
+        class:list={[
+          'border-b-2 px-4 py-3 text-[12px] uppercase tracking-luxus transition-colors',
+          statusParam === tab.key
+            ? 'border-ink text-ink'
+            : 'border-transparent text-ink-muted hover:text-ink',
+        ]}
+      >
+        {tab.label}
+      </a>
+    ))}
+  </nav>
+
+  {requests.length === 0 ? (
+    <p class="border border-stone bg-white p-8 text-[14px] text-ink-muted">
+      No hay solicitudes en este estado.
+    </p>
+  ) : (
+    <ul class="space-y-4">
+      {requests.map((req) => (
+        <li class="border border-stone bg-white">
+          <div class="grid gap-8 p-6 lg:grid-cols-12">
+            <div class="lg:col-span-4">
+              <p class="text-[11px] uppercase tracking-luxus text-gold-dark">
+                {PROFILE_LABEL[req.applicant_profile] ?? req.applicant_profile}
+              </p>
+              <p class="mt-2 font-display text-[19px]">{req.full_name}</p>
+              <p class="mt-1 text-[13px] text-ink-muted">{req.email}</p>
+              {req.phone && <p class="text-[13px] text-ink-muted">{req.phone}</p>}
+              {req.company && <p class="mt-1 text-[13px] text-ink-muted">{req.company}</p>}
+              <p class="mt-1 text-[13px] text-ink-muted">
+                {[req.city, req.country].filter(Boolean).join(', ')}
+              </p>
+              <p class="mt-3 text-[11px] uppercase tracking-luxus text-ink-muted/70">
+                {formatDate(req.created_at)}
+              </p>
+            </div>
+
+            <div class="lg:col-span-4">
+              {req.interest && (
+                <p class="text-[13px]"><strong class="text-ink-muted">Interés:</strong> {req.interest}</p>
+              )}
+              {req.budget_range && (
+                <p class="mt-1.5 text-[13px]"><strong class="text-ink-muted">Presupuesto:</strong> {req.budget_range}</p>
+              )}
+              {req.message && (
+                <p class="mt-3 text-[13.5px] leading-relaxed text-ink">{req.message}</p>
+              )}
+              {req.review_notes && (
+                <p class="mt-3 border-l-2 border-stone-dark pl-3 text-[12.5px] italic text-ink-muted">
+                  {req.review_notes}
+                </p>
+              )}
+            </div>
+
+            <div class="lg:col-span-4">
+              {statusParam === 'pending' ? (
+                <AccessRequestReview client:visible requestId={req.id} applicantProfile={req.applicant_profile} />
+              ) : (
+                <span class:list={[
+                  'badge',
+                  statusParam === 'approved' ? 'border-ink bg-ink text-white' : 'border-stone-dark text-ink-muted',
+                ]}>
+                  {statusParam === 'approved' ? 'Aprobada' : 'Rechazada'}
+                </span>
+              )}
+            </div>
+          </div>
+        </li>
+      ))}
+    </ul>
+  )}
+</DashboardShell>

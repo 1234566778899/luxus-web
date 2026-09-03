@@ -1,0 +1,59 @@
+---
+import DashboardShell from '../../components/private/DashboardShell.astro';
+import AccountSettings from '../../components/islands/AccountSettings.tsx';
+import { requireSession } from '../../lib/auth';
+
+const guard = requireSession(Astro);
+if (guard instanceof Response) return guard;
+const session = guard;
+
+const supabase = Astro.locals.supabase;
+
+const [prefsResult, sessionsResult] = await Promise.all([
+  supabase.from('notification_preferences').select('*').eq('user_id', session.userId).maybeSingle(),
+  supabase
+    .from('user_sessions')
+    .select('id, ip_address, user_agent, device_label, created_at, last_seen_at')
+    .eq('user_id', session.userId)
+    .is('revoked_at', null)
+    .order('last_seen_at', { ascending: false }),
+]);
+---
+
+<DashboardShell title="Mi cuenta" session={session} heading="Mi cuenta">
+  <AccountSettings
+    client:load
+    profile={{
+      full_name: session.profile.full_name,
+      phone: session.profile.phone,
+      city: session.profile.city,
+      country: session.profile.country,
+      mfa_enrolled: session.profile.mfa_enrolled,
+    }}
+    preferences={prefsResult.data}
+    sessions={sessionsResult.data ?? []}
+  />
+
+  <section class="mt-12" aria-labelledby="data-title">
+    <h2 id="data-title" class="font-display text-[24px]">Sus datos personales</h2>
+
+    <div class="mt-5 border border-stone bg-white p-7">
+      <p class="text-[14px] leading-relaxed text-ink-muted">
+        Conforme a la Ley 29733, puede ejercer sus derechos de acceso,
+        rectificación, cancelación y oposición sobre los datos que tratamos, así
+        como revocar su consentimiento.
+      </p>
+      <p class="mt-4 text-[14px] leading-relaxed text-ink-muted">
+        Escriba a{' '}
+        <a href="mailto:privacidad@luxusperu.com" class="link-underline text-ink">
+          privacidad@luxusperu.com
+        </a>{' '}
+        adjuntando copia de su documento de identidad. Atendemos las solicitudes
+        en los plazos legales.
+      </p>
+      <a href="/legal/privacy" class="link-underline mt-5 inline-block text-[12px] uppercase tracking-luxus">
+        Política de privacidad →
+      </a>
+    </div>
+  </section>
+</DashboardShell>

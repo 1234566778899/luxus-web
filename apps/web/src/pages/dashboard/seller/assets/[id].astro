@@ -1,0 +1,159 @@
+---
+import DashboardShell from '../../../../components/private/DashboardShell.astro';
+import AssetWizard from '../../../../components/islands/AssetWizard.tsx';
+import DocumentManager from '../../../../components/islands/DocumentManager.tsx';
+import { CATEGORY_META } from '@luxus/shared';
+import type { AssetCategory } from '@luxus/shared';
+import { requireRole } from '../../../../lib/auth';
+
+const guard = requireRole(Astro, 'seller', 'broker', 'admin');
+if (guard instanceof Response) return guard;
+const session = guard;
+
+const { id } = Astro.params;
+if (!id) return Astro.redirect('/dashboard/seller/assets', 302);
+
+const supabase = Astro.locals.supabase;
+
+// RLS solo devuelve el activo si el usuario es su dueño, su bróker o admin.
+const { data: asset } = await supabase
+  .from('assets')
+  .select(`
+    id, slug, title, headline, description_public, category, status, visibility, tier,
+    district, province, region, price_min, price_max, price_on_request, specs,
+    asset_media (id, bucket, storage_path, is_public, sort_order)
+  `)
+  .eq('id', id)
+  .maybeSingle();
+
+if (!asset) {
+  return new Response(null, { status: 404, statusText: 'Not found' });
+}
+
+const [{ data: privateDetails }, { data: broker }, { data: checklist }] = await Promise.all([
+  supabase
+    .from('asset_private_details')
+    .select('price_exact, address_exact, description_private, registry_reference, valuation_amount, valuation_firm')
+    .eq('asset_id', asset.id)
+    .maybeSingle(),
+  supabase.from('brokers').select('id').eq('user_id', session.userId).maybeSingle(),
+  supabase
+    .from('asset_verification_items')
+    .select('id, item_key, label, authority, required, status, notes')
+    .eq('asset_id', asset.id)
+    .order('required', { ascending: false })
+    .order('label'),
+]);
+
+const media = (asset.asset_media as unknown as {
+  id: string; bucket: string; storage_path: string; is_public: boolean; sort_order: number;
+}[] | null) ?? [];
+---
+
+<DashboardShell title={asset.title} session={session}>
+  <div class="mb-8">
+    <nav aria-label="Migas de pan" class="mb-6">
+      <ol class="flex items-center gap-2 text-[11px] uppercase tracking-luxus text-ink-muted">
+        <li><a href="/dashboard/seller/assets" class="link-underline">Mis activos</a></li>
+        <li aria-hidden="true">·</li>
+        <li aria-current="page" class="truncate text-ink">{asset.title}</li>
+      </ol>
+    </nav>
+
+    <h1 class="font-display text-[30px] leading-tight">{asset.title}</h1>
+    <p class="mt-2 text-[13px] uppercase tracking-luxus text-ink-muted">
+      {CATEGORY_META[asset.category as AssetCategory].label} ·{' '}
+      {asset.status === 'published' ? 'Publicado' : 'No publicado'}
+    </p>
+  </div>
+
+  <div class="space-y-12">
+    <section aria-labelledby="edit-title">
+      <h2 id="edit-title" class="mb-5 font-display text-[24px]">Ficha del activo</h2>
+      <AssetWizard
+        client:load
+        brokerId={broker?.id ?? null}
+        existing={{
+          id: asset.id,
+          category: asset.category as AssetCategory,
+          title: asset.title,
+          headline: asset.headline,
+          description_public: asset.description_public,
+          district: asset.district,
+          province: asset.province,
+          region: asset.region,
+          price_min: asset.price_min,
+          price_max: asset.price_max,
+          price_on_request: asset.price_on_request,
+          visibility: asset.visibility,
+          tier: asset.tier,
+          specs: asset.specs as Record<string, unknown>,
+          private_details: privateDetails ?? null,
+          media,
+        }}
+      />
+    </section>
+
+    <section id="documents" aria-labelledby="docs-title">
+      <h2 id="docs-title" class="mb-2 font-display text-[24px]">Documentación del Deal Room</h2>
+      <p class="mb-5 max-w-2xl text-[14px] leading-relaxed text-ink-muted">
+        Organice los documentos por carpeta. Nadie los ve hasta que conceda un
+        permiso explícito dentro de un Deal Room, y cada permiso caduca en la
+        fecha que usted fije.
+      </p>
+      <DocumentManager client:visible assetId={asset.id} />
+    </section>
+
+    {checklist && checklist.length > 0 && (
+      <section aria-labelledby="check-title">
+        <h2 id="check-title" class="mb-2 font-display text-[24px]">Checklist de verificación</h2>
+        <p class="mb-5 max-w-2xl text-[14px] leading-relaxed text-ink-muted">
+          Estos son los documentos que revisa el equipo de LUXUS antes de
+          publicar. El estado lo marca el equipo, no el vendedor.
+        </p>
+
+        <div class="overflow-x-auto border border-stone bg-white">
+          <table class="w-full min-w-[36rem] text-left">
+            <caption class="sr-only">Requisitos de verificación</caption>
+            <thead>
+              <tr class="border-b border-stone text-[10px] uppercase tracking-luxus text-ink-muted">
+                <th scope="col" class="px-5 py-3.5 font-normal">Requisito</th>
+                <th scope="col" class="px-5 py-3.5 font-normal">Autoridad</th>
+                <th scope="col" class="px-5 py-3.5 font-normal">Estado</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-stone">
+              {checklist.map((item) => (
+                <tr class="text-[13.5px]">
+                  <td class="px-5 py-3.5">
+                    {item.label}
+                    {item.required && <span class="ml-1.5 text-gold-dark">*</span>}
+                    {item.notes && (
+                      <span class="mt-1 block text-[12px] text-ink-muted">{item.notes}</span>
+                    )}
+                  </td>
+                  <td class="px-5 py-3.5 text-[12px] text-ink-muted">{item.authority ?? '—'}</td>
+                  <td class="px-5 py-3.5">
+                    <span class:list={[
+                      'badge',
+                      item.status === 'verified' ? 'border-ink bg-ink text-white'
+                        : item.status === 'rejected' ? 'border-red-400 text-red-700'
+                        : item.status === 'received' ? 'border-gold text-gold-dark'
+                        : 'border-stone-dark text-ink-muted',
+                    ]}>
+                      {item.status === 'verified' ? 'Verificado'
+                        : item.status === 'received' ? 'Recibido'
+                        : item.status === 'rejected' ? 'Rechazado'
+                        : item.status === 'not_applicable' ? 'No aplica'
+                        : 'Pendiente'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    )}
+  </div>
+</DashboardShell>

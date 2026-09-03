@@ -1,0 +1,194 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  body {
+    @apply bg-white text-ink font-sans antialiased;
+    font-size: 15px;
+  }
+
+  /* Sin color propio: hereda de `body` (text-ink) en el caso normal, y del
+     ancestro más cercano (p.ej. una sección `text-white` sobre foto oscura)
+     en caso contrario. Fijar `text-ink` aquí bloquearía esa herencia — un
+     encabezado siempre gana sobre el color heredado del contenedor, así que
+     todo título quedaría oscuro incluso dentro de una sección oscura. */
+  h1, h2, h3, h4 {
+    @apply font-display font-normal;
+    text-wrap: balance;
+  }
+
+  /* Foco visible en toda la interfaz: requisito AA. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-gold ring-offset-2 ring-offset-white;
+  }
+
+  ::selection {
+    @apply bg-ink text-ivory;
+  }
+
+  input, select, textarea {
+    @apply font-sans;
+  }
+}
+
+@layer components {
+  /* Etiqueta breve en versalitas: el patrón tipográfico del sitio. */
+  .eyebrow {
+    @apply text-eyebrow uppercase tracking-luxus text-ink-muted;
+  }
+
+  .rule {
+    @apply border-t border-stone;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-7 py-3.5
+           text-[11px] uppercase tracking-luxus font-medium
+           transition-all duration-300 ease-luxus
+           disabled:opacity-40 disabled:pointer-events-none;
+  }
+
+  /* Acento único (verde azulado) para la acción principal — el mismo patrón
+     que un marketplace de lujo de referencia usa en "Search", "Sign Up" y
+     "Send message". */
+  .btn-primary {
+    @apply btn bg-gold text-white hover:bg-gold-light;
+  }
+
+  .btn-outline {
+    @apply btn border border-gold text-gold-dark hover:bg-gold hover:text-white;
+  }
+
+  .btn-ghost {
+    @apply btn border border-stone-dark text-ink-muted hover:border-ink hover:text-ink;
+  }
+
+  .btn-gold {
+    @apply btn bg-gold text-white hover:bg-gold-light;
+  }
+
+  .btn-dark {
+    @apply btn bg-ink text-white hover:bg-ink-soft;
+  }
+
+  .btn-light {
+    @apply btn border border-white/70 text-white hover:bg-white hover:text-ink;
+  }
+
+  .field {
+    @apply w-full border border-stone-dark bg-white px-4 py-3 text-[15px] text-ink
+           placeholder:text-ink-muted/60
+           focus:border-ink focus:outline-none focus:ring-1 focus:ring-ink
+           disabled:bg-ivory disabled:text-ink-muted;
+  }
+
+  .label {
+    @apply block mb-2 text-[11px] uppercase tracking-luxus text-ink-muted;
+  }
+
+  .field-error {
+    @apply mt-1.5 text-[12px] text-red-700;
+  }
+
+  .card-surface {
+    @apply border border-stone bg-white;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1.5 border px-2.5 py-1
+           text-[10px] uppercase tracking-luxus;
+  }
+
+  /* Insignias como píldoras sólidas sobre la fotografía — el mismo patrón de
+     "New" / "Video" de un marketplace de lujo de referencia, diferenciadas
+     aquí por color según el estado de acceso. */
+  .badge-verified { @apply badge border-transparent bg-ink/90 text-white backdrop-blur-sm; }
+  .badge-private  { @apply badge border-transparent bg-gold text-white; }
+  .badge-offmkt   { @apply badge border-transparent bg-ink text-white; }
+
+  .link-underline {
+    @apply relative inline-block after:absolute after:bottom-0 after:left-0
+           after:h-px after:w-full after:origin-right after:scale-x-0 after:bg-current
+           after:transition-transform after:duration-300 after:ease-luxus
+           hover:after:origin-left hover:after:scale-x-100;
+  }
+
+  .container-page {
+    @apply mx-auto w-full max-w-page px-5 sm:px-8 lg:px-12;
+  }
+
+  .skip-link {
+    @apply sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100]
+           focus:bg-ink focus:px-5 focus:py-3 focus:text-white focus:text-[12px]
+           focus:uppercase focus:tracking-luxus;
+  }
+}
+
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+  .text-pretty { text-wrap: pretty; }
+
+  /* Degradado para leer texto blanco sobre fotografía. */
+  .scrim {
+    background: linear-gradient(
+      to top,
+      rgba(10, 10, 10, 0.8) 0%,
+      rgba(10, 10, 10, 0.45) 38%,
+      rgba(10, 10, 10, 0.1) 70%,
+      rgba(10, 10, 10, 0) 100%
+    );
+  }
+
+  .scrim-soft {
+    background: linear-gradient(to top, rgba(10, 10, 10, 0.55) 0%, rgba(10, 10, 10, 0) 60%);
+  }
+
+  /* Igual que .scrim pero horizontal: para texto anclado a la izquierda
+     sobre una fotografía a pantalla completa, cuando el punto brillante de
+     la foto puede caer justo detrás del texto en vez de en un borde fijo. */
+  .scrim-left {
+    background: linear-gradient(
+      to right,
+      rgba(10, 10, 10, 0.92) 0%,
+      rgba(10, 10, 10, 0.75) 40%,
+      rgba(10, 10, 10, 0.4) 68%,
+      rgba(10, 10, 10, 0.12) 100%
+    );
+  }
+
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+}
+
+/* Marca de agua visual del visor: refuerza en pantalla lo que el PDF ya lleva. */
+.viewer-watermark {
+  background-image: repeating-linear-gradient(
+    -35deg,
+    transparent,
+    transparent 120px,
+    rgba(20, 20, 20, 0.035) 120px,
+    rgba(20, 20, 20, 0.035) 240px
+  );
+}

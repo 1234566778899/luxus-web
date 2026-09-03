@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+
+# Zona privada: nunca se indexa.
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /deal
+Disallow: /onboarding
+Disallow: /auth
+
+Sitemap: https://luxusperu.com/sitemap.xml

@@ -1,0 +1,102 @@
+---
+import '../styles/global.css';
+import { BRAND } from '@luxus/shared';
+import { SITE_URL } from '../lib/env';
+
+interface Props {
+  title: string;
+  description?: string;
+  /** Imagen para Open Graph. Debe ser absoluta. */
+  image?: string;
+  /** La zona privada nunca se indexa. */
+  noindex?: boolean;
+  canonical?: string;
+  type?: 'website' | 'article';
+  jsonLd?: Record<string, unknown> | Record<string, unknown>[];
+  bodyClass?: string;
+}
+
+const {
+  title,
+  description = 'Marketplace privado de activos de ultra alto patrimonio en Perú. Propiedades, empresas, vehículos de colección, yates y aeronaves. Verificado, confidencial, curado.',
+  image,
+  noindex = false,
+  canonical,
+  type = 'website',
+  jsonLd,
+  bodyClass = '',
+} = Astro.props;
+
+const fullTitle = title.includes(BRAND.name) ? title : `${title} — ${BRAND.name}`;
+const canonicalUrl = canonical ?? new URL(Astro.url.pathname, SITE_URL).toString();
+const ogImage = image ?? `${SITE_URL}/logo-luxus.png`;
+
+const organizationLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: BRAND.name,
+  legalName: BRAND.legalName,
+  url: SITE_URL,
+  email: BRAND.email,
+  telephone: BRAND.phone,
+  address: {
+    '@type': 'PostalAddress',
+    streetAddress: 'Av. Santa Cruz 1250',
+    addressLocality: 'San Isidro',
+    addressRegion: 'Lima',
+    addressCountry: 'PE',
+  },
+  slogan: BRAND.claim,
+};
+
+const structured = jsonLd
+  ? Array.isArray(jsonLd)
+    ? [organizationLd, ...jsonLd]
+    : [organizationLd, jsonLd]
+  : [organizationLd];
+---
+
+<!doctype html>
+<html lang="es" class="scroll-pt-24">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalUrl} />
+
+    {noindex
+      ? <meta name="robots" content="noindex, nofollow, noarchive, nosnippet" />
+      : <meta name="robots" content="index, follow, max-image-preview:large" />}
+
+    <meta property="og:type" content={type} />
+    <meta property="og:site_name" content={BRAND.name} />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:locale" content="es_PE" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={fullTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+
+    <meta name="theme-color" content={BRAND.colors.navy} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/logo-luxus.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    {!noindex && <link rel="sitemap" href="/sitemap.xml" />}
+
+    <script type="application/ld+json" set:html={JSON.stringify(structured)} />
+  </head>
+
+  <body class={bodyClass}>
+    <a href="#main" class="skip-link">Ir al contenido principal</a>
+    <slot />
+  </body>
+</html>

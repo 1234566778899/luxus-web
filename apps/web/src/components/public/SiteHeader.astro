@@ -1,0 +1,201 @@
+---
+import Logo from '../ui/Logo.astro';
+import NotificationBell from '../islands/NotificationBell.tsx';
+import HeaderSearch from '../islands/HeaderSearch.tsx';
+import { CATEGORY_META, CATEGORY_ORDER } from '@luxus/shared';
+import type { AssetCategory } from '@luxus/shared';
+import type { SessionContext } from '../../lib/auth';
+
+interface Props {
+  /** Cabecera transparente sobre el hero de portada. */
+  transparent?: boolean;
+  session?: SessionContext | null;
+  /**
+   * Presente en las páginas de colección: sustituye la navegación por
+   * categorías por el buscador, al estilo de un marketplace de lujo de
+   * referencia al entrar a una categoría.
+   */
+  category?: AssetCategory;
+  searchValue?: string;
+}
+
+const { transparent = false, session = null, category, searchValue = '' } = Astro.props;
+const path = Astro.url.pathname;
+const isVerified = session?.profile.kyc_status === 'approved';
+---
+
+<header
+  data-transparent={transparent ? 'true' : 'false'}
+  class:list={[
+    'group/header sticky top-0 z-50 w-full transition-colors duration-500 ease-luxus',
+    transparent
+      ? 'bg-transparent text-white data-[scrolled=true]:bg-white data-[scrolled=true]:text-ink data-[scrolled=true]:border-b data-[scrolled=true]:border-stone'
+      : 'border-b border-stone bg-white text-ink',
+  ]}
+  id="site-header"
+>
+  <div class="container-page">
+    <div class="flex h-[72px] items-center justify-between gap-6">
+      <Logo variant={transparent ? 'light' : 'dark'} size="md" reactive={transparent} />
+
+      {category ? (
+        <div class="hidden flex-1 justify-center px-6 lg:flex">
+          <HeaderSearch
+            client:load
+            category={category}
+            initialValue={searchValue}
+            light={transparent}
+          />
+        </div>
+      ) : (
+        <nav class="hidden lg:block" aria-label="Categorías">
+          <ul class="flex items-center gap-7">
+            {CATEGORY_ORDER.map((cat) => {
+              const meta = CATEGORY_META[cat];
+              const href = `/collection/${cat}`;
+              const active = path.startsWith(href);
+              return (
+                <li>
+                  <a
+                    href={href}
+                    aria-current={active ? 'page' : undefined}
+                    class:list={[
+                      'link-underline text-[13.5px] transition-opacity',
+                      active ? 'opacity-100' : 'opacity-80 hover:opacity-100',
+                    ]}
+                  >
+                    {meta.label}
+                  </a>
+                </li>
+              );
+            })}
+            <li>
+              <a
+                href="/intelligence"
+                class:list={[
+                  'link-underline text-[13.5px] transition-opacity',
+                  path.startsWith('/intelligence') ? 'opacity-100' : 'opacity-80 hover:opacity-100',
+                ]}
+              >
+                Intelligence
+              </a>
+            </li>
+          </ul>
+        </nav>
+      )}
+
+      <div class="flex items-center gap-4">
+        {session ? (
+          <>
+            <NotificationBell client:idle />
+            <a
+              href={session.profile.role === 'admin' ? '/admin' : '/dashboard'}
+              class="hidden text-[11px] uppercase tracking-luxus opacity-70 hover:opacity-100 sm:inline-block"
+            >
+              {session.profile.role === 'admin' ? 'Admin' : 'Mi panel'}
+            </a>
+            {!isVerified && session.profile.role !== 'admin' && (
+              <a
+                href="/onboarding/kyc"
+                class="hidden text-[11px] uppercase tracking-luxus text-gold sm:inline-block"
+              >
+                Verificar cuenta
+              </a>
+            )}
+          </>
+        ) : (
+          <a
+            href="/auth/login"
+            class="hidden text-[11px] uppercase tracking-luxus opacity-70 hover:opacity-100 sm:inline-block"
+          >
+            Acceder
+          </a>
+        )}
+
+        <a
+          href="/private-access"
+          class:list={[
+            'hidden md:inline-flex',
+            transparent ? 'btn-light group-data-[scrolled=true]/header:btn-outline' : 'btn-outline',
+            'px-5 py-2.5',
+          ]}
+        >
+          Request Private Access
+        </a>
+
+        <button
+          type="button"
+          id="menu-toggle"
+          class="lg:hidden -mr-1 p-2"
+          aria-expanded="false"
+          aria-controls="mobile-menu"
+          aria-label="Abrir menú"
+        >
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <path d="M3 6h18M3 12h18M3 18h18" stroke-linecap="square" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Menú móvil -->
+  <div
+    id="mobile-menu"
+    hidden
+    class="border-t border-stone bg-white text-ink lg:hidden"
+  >
+    <nav class="container-page py-6" aria-label="Navegación móvil">
+      <ul class="space-y-1">
+        {CATEGORY_ORDER.map((category) => (
+          <li>
+            <a
+              href={`/collection/${category}`}
+              class="block border-b border-stone/70 py-3.5 text-[12px] uppercase tracking-luxus"
+            >
+              {CATEGORY_META[category].label}
+            </a>
+          </li>
+        ))}
+        <li>
+          <a href="/intelligence" class="block border-b border-stone/70 py-3.5 text-[12px] uppercase tracking-luxus">
+            Intelligence
+          </a>
+        </li>
+        <li>
+          <a href="/membership" class="block border-b border-stone/70 py-3.5 text-[12px] uppercase tracking-luxus">
+            Membresías
+          </a>
+        </li>
+        <li>
+          <a href={session ? '/dashboard' : '/auth/login'} class="block py-3.5 text-[12px] uppercase tracking-luxus">
+            {session ? 'Mi panel' : 'Acceder'}
+          </a>
+        </li>
+      </ul>
+      <a href="/private-access" class="btn-primary mt-6 w-full">Request Private Access</a>
+    </nav>
+  </div>
+</header>
+
+<script>
+  const header = document.getElementById('site-header');
+  const toggle = document.getElementById('menu-toggle');
+  const menu = document.getElementById('mobile-menu');
+
+  if (header?.dataset.transparent === 'true') {
+    const onScroll = () => {
+      header.dataset.scrolled = window.scrollY > 40 ? 'true' : 'false';
+    };
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+  }
+
+  toggle?.addEventListener('click', () => {
+    if (!menu) return;
+    const open = menu.hidden;
+    menu.hidden = !open;
+    toggle.setAttribute('aria-expanded', String(open));
+    toggle.setAttribute('aria-label', open ? 'Cerrar menú' : 'Abrir menú');
+  });
+</script>

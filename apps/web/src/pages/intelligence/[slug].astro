@@ -1,0 +1,141 @@
+---
+import { marked } from 'marked';
+import PublicLayout from '../../layouts/PublicLayout.astro';
+import { formatDate } from '@luxus/shared';
+import { fetchArticleBySlug, fetchPublishedArticles } from '../../lib/queries';
+
+const { slug } = Astro.params;
+if (!slug) return Astro.redirect('/404', 302);
+
+const supabase = Astro.locals.supabase;
+const article = await fetchArticleBySlug(supabase, slug);
+
+// RLS ya decide si un artículo reservado es legible. Si no lo es, no llega
+// nada y respondemos 404: no confirmamos siquiera que exista.
+if (!article) {
+  return new Response(null, { status: 404, statusText: 'Not found' });
+}
+
+marked.setOptions({ gfm: true, breaks: false });
+const html = await marked.parse(article.body_md);
+
+const others = (await fetchPublishedArticles(supabase, 4)).filter((a) => a.slug !== slug).slice(0, 3);
+
+const seo = (article.seo ?? {}) as { title?: string; description?: string; og_image?: string };
+const cover = seo.og_image ?? `https://picsum.photos/seed/${article.slug}/1600/900`;
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Article',
+  headline: article.title,
+  description: article.excerpt,
+  datePublished: article.published_at,
+  dateModified: article.updated_at,
+  author: { '@type': 'Person', name: article.author_name ?? 'LUXUS PERÚ' },
+  publisher: { '@type': 'Organization', name: 'LUXUS PERÚ' },
+  image: cover,
+  isAccessibleForFree: !article.is_members_only,
+};
+---
+
+<PublicLayout
+  title={seo.title ?? article.title}
+  description={seo.description ?? article.excerpt ?? undefined}
+  image={cover}
+  type="article"
+  jsonLd={jsonLd}
+>
+  <article>
+    <header class="container-page pt-14 lg:pt-20">
+      <nav aria-label="Migas de pan" class="mb-10">
+        <ol class="flex items-center gap-2 text-[11px] uppercase tracking-luxus text-ink-muted">
+          <li><a href="/" class="link-underline">Inicio</a></li>
+          <li aria-hidden="true">·</li>
+          <li><a href="/intelligence" class="link-underline">Intelligence</a></li>
+        </ol>
+      </nav>
+
+      <div class="mx-auto max-w-prose2">
+        <p class="eyebrow">
+          {article.category ?? 'Reporte'}
+          {article.is_members_only && <span class="ml-2 text-gold-dark">· Reservado para miembros</span>}
+        </p>
+
+        <h1 class="mt-5 font-display text-[38px] leading-[1.12] sm:text-[50px]">{article.title}</h1>
+
+        {article.subtitle && (
+          <p class="mt-6 font-display text-[21px] italic leading-relaxed text-ink-muted">
+            {article.subtitle}
+          </p>
+        )}
+
+        <div class="mt-9 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-stone pt-6 text-[12px] uppercase tracking-luxus text-ink-muted">
+          <span>{article.author_name}</span>
+          <span aria-hidden="true">·</span>
+          <time datetime={article.published_at ?? undefined}>{formatDate(article.published_at)}</time>
+          <span aria-hidden="true">·</span>
+          <span>{article.reading_time} min de lectura</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="container-page py-12">
+      <div class="mx-auto aspect-[16/9] max-w-4xl overflow-hidden bg-stone">
+        <img src={cover} alt={article.cover_alt ?? ''} class="h-full w-full object-cover" decoding="async" />
+      </div>
+    </div>
+
+    <div class="container-page pb-20">
+      <div
+        class="prose prose-neutral mx-auto max-w-prose2
+               prose-headings:font-display prose-headings:font-normal
+               prose-h2:mt-14 prose-h2:text-[28px]
+               prose-h3:mt-10 prose-h3:text-[22px]
+               prose-p:text-[17px] prose-p:leading-[1.8] prose-p:text-ink/90
+               prose-li:text-[17px] prose-li:leading-[1.8]
+               prose-strong:text-ink
+               prose-a:text-ink prose-a:underline prose-a:decoration-gold prose-a:underline-offset-4
+               prose-table:text-[15px] prose-th:text-left"
+        set:html={html}
+      />
+
+      {article.tags.length > 0 && (
+        <div class="mx-auto mt-14 max-w-prose2 border-t border-stone pt-8">
+          <ul class="flex flex-wrap gap-2">
+            {article.tags.map((tag) => (
+              <li class="border border-stone px-3 py-1.5 text-[11px] uppercase tracking-luxus text-ink-muted">
+                {tag}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <aside class="mx-auto mt-14 max-w-prose2 border-l-2 border-gold bg-ivory px-6 py-5">
+        <p class="text-[13px] leading-relaxed text-ink-muted">
+          Este contenido es análisis de mercado elaborado por LUXUS PERÚ. No
+          constituye asesoría legal, tributaria ni recomendación de inversión.
+        </p>
+      </aside>
+    </div>
+  </article>
+
+  {others.length > 0 && (
+    <section class="border-t border-stone bg-ivory py-20">
+      <div class="container-page">
+        <h2 class="font-display text-[28px]">Otros reportes</h2>
+        <div class="mt-10 grid gap-10 sm:grid-cols-3">
+          {others.map((other) => (
+            <article>
+              <p class="eyebrow">{other.category ?? 'Reporte'}</p>
+              <h3 class="mt-3 font-display text-[20px] leading-snug">
+                <a href={`/intelligence/${other.slug}`} class="link-underline">{other.title}</a>
+              </h3>
+              <p class="mt-2 text-[13px] text-ink-muted">{formatDate(other.published_at)}</p>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+</PublicLayout>

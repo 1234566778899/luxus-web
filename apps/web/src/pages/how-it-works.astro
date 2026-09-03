@@ -1,0 +1,162 @@
+---
+import PublicLayout from '../layouts/PublicLayout.astro';
+import { DEAL_STAGE_META, TRUST_PILLARS } from '@luxus/shared';
+
+const flow = [
+  'requested', 'kyc_review', 'seller_review', 'nda_pending', 'nda_signed',
+  'qa', 'offer', 'loi', 'due_diligence', 'closing', 'closed',
+] as const;
+---
+
+<PublicLayout
+  title="Cómo funciona"
+  description="El proceso de LUXUS PERÚ: niveles de información, verificación, Deal Room con NDA y permisos documentales con vencimiento."
+>
+  <section class="border-b border-stone bg-ivory">
+    <div class="container-page py-16 lg:py-24">
+      <div class="max-w-2xl">
+        <p class="text-eyebrow uppercase tracking-wider2 text-gold-dark">El proceso</p>
+        <h1 class="mt-5 font-display text-[42px] leading-tight sm:text-[54px]">
+          Información que se abre por etapas
+        </h1>
+        <p class="mt-7 text-[16px] leading-relaxed text-ink-muted text-pretty">
+          Nada se revela antes de tiempo. Cada nivel de información se
+          desbloquea cuando ambas partes han dado un paso verificable.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="container-page py-20" aria-labelledby="levels-title">
+    <h2 id="levels-title" class="font-display text-[32px]">Tres niveles de información</h2>
+
+    <div class="mt-12 grid gap-px overflow-hidden border border-stone bg-stone lg:grid-cols-3">
+      {[
+        {
+          n: 'Nivel I',
+          t: 'Público',
+          d: 'Visible para cualquier visitante.',
+          items: ['Categoría y distrito aproximado', 'Rango de precio', 'Fotografía seleccionada', 'Descripción general'],
+          excluded: ['Precio exacto', 'Dirección', 'Documentación'],
+        },
+        {
+          n: 'Nivel II',
+          t: 'Miembro verificado',
+          d: 'Tras completar la verificación de identidad.',
+          items: ['Precio de referencia', 'Ubicación real', 'Valorización y tasador', 'Material fotográfico reservado'],
+          excluded: ['Documentación registral y financiera'],
+        },
+        {
+          n: 'Nivel III',
+          t: 'Deal Room',
+          d: 'Tras aprobación del vendedor y firma del NDA.',
+          items: ['Árbol documental por carpetas', 'Versionamiento con historial', 'Q&A privado con el vendedor', 'Ofertas y carta de intención'],
+          excluded: [],
+        },
+      ].map((level) => (
+        <div class="bg-white p-8 lg:p-10">
+          <p class="text-eyebrow uppercase tracking-luxus text-gold-dark">{level.n}</p>
+          <h3 class="mt-3 font-display text-[26px]">{level.t}</h3>
+          <p class="mt-2 text-[14px] text-ink-muted">{level.d}</p>
+
+          <ul class="mt-7 space-y-2.5">
+            {level.items.map((item) => (
+              <li class="flex gap-2.5 text-[14px] leading-relaxed text-ink">
+                <span aria-hidden="true" class="text-gold-dark">✓</span>
+                {item}
+              </li>
+            ))}
+            {level.excluded.map((item) => (
+              <li class="flex gap-2.5 text-[14px] leading-relaxed text-ink-muted/60 line-through">
+                <span aria-hidden="true" class="no-underline">—</span>
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <section class="border-t border-stone bg-ink py-20 text-white" aria-labelledby="flow-title">
+    <div class="container-page">
+      <h2 id="flow-title" class="font-display text-[32px]">El flujo de una operación</h2>
+      <p class="mt-4 max-w-2xl text-[15px] leading-relaxed text-white/60">
+        Cada etapa queda registrada y es visible para ambas partes.
+      </p>
+
+      <ol class="mt-14 space-y-0">
+        {flow.map((stage, index) => {
+          const meta = DEAL_STAGE_META[stage];
+          return (
+            <li class="flex gap-6 border-t border-white/[12%] py-6">
+              <span class="w-10 shrink-0 pt-0.5 font-display text-[15px] text-gold-light">
+                {String(index + 1).padStart(2, '0')}
+              </span>
+              <div class="flex-1">
+                <h3 class="font-display text-[21px] text-white">{meta.label}</h3>
+                <p class="mt-1.5 text-[14px] leading-relaxed text-white/60">{meta.description}</p>
+              </div>
+              <span class="hidden shrink-0 self-start text-[10px] uppercase tracking-luxus text-white/[35%] sm:block">
+                {meta.actor === 'buyer' ? 'Comprador'
+                  : meta.actor === 'seller' ? 'Vendedor'
+                  : meta.actor === 'platform' ? 'LUXUS'
+                  : meta.actor === 'both' ? 'Ambas partes' : '—'}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  </section>
+
+  <section class="container-page py-20" aria-labelledby="security-title">
+    <h2 id="security-title" class="font-display text-[32px]">Seguridad documental</h2>
+
+    <div class="mt-12 grid gap-10 lg:grid-cols-2">
+      <div class="space-y-8">
+        {[
+          {
+            t: 'Marca de agua dinámica',
+            d: 'Cada PDF entregado incorpora el correo de quien lo abrió y la fecha y hora exactas. No hay dos copias iguales.',
+          },
+          {
+            t: 'Enlaces de cinco minutos',
+            d: 'La documentación nunca se sirve desde una URL permanente. Cada apertura genera un enlace firmado que caduca.',
+          },
+          {
+            t: 'Permisos con vencimiento',
+            d: 'El vendedor fija cuántos días dura cada permiso. Al cumplirse, el acceso se revoca automáticamente.',
+          },
+          {
+            t: 'Registro de auditoría',
+            d: 'Cada visualización, descarga, firma y cambio de permiso queda registrado con IP y agente de usuario, visible para el vendedor.',
+          },
+        ].map((item) => (
+          <div class="border-l-2 border-gold pl-6">
+            <h3 class="font-display text-[21px]">{item.t}</h3>
+            <p class="mt-2 text-[14.5px] leading-relaxed text-ink-muted">{item.d}</p>
+          </div>
+        ))}
+      </div>
+
+      <div class="border border-stone bg-ivory p-9">
+        <h3 class="font-display text-[24px]">Nuestros compromisos</h3>
+        <dl class="mt-7 space-y-6">
+          {TRUST_PILLARS.map((pillar) => (
+            <div>
+              <dt class="font-display text-[18px]">{pillar.title}</dt>
+              <dd class="mt-1.5 text-[14px] leading-relaxed text-ink-muted">{pillar.body}</dd>
+            </div>
+          ))}
+        </dl>
+
+        <p class="mt-9 border-t border-stone-dark pt-6 text-[13px] leading-relaxed text-ink-muted">
+          El movimiento de fondos se canaliza siempre a través de una entidad
+          fiduciaria o escrow externa designada por las partes. LUXUS PERÚ no
+          recibe, custodia ni transfiere fondos de la transacción.
+        </p>
+      </div>
+    </div>
+  </section>
+</PublicLayout>

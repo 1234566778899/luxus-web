@@ -1,0 +1,223 @@
+---
+import LegalLayout from '../../layouts/LegalLayout.astro';
+import { BRAND } from '@luxus/shared';
+
+const sections = [
+  { id: 'objeto', label: 'Objeto y naturaleza del servicio' },
+  { id: 'admision', label: 'Admisión y cuentas' },
+  { id: 'niveles', label: 'Niveles de información' },
+  { id: 'verificacion', label: 'Verificación y cumplimiento' },
+  { id: 'publicacion', label: 'Publicación de activos' },
+  { id: 'dealroom', label: 'Deal Room y confidencialidad' },
+  { id: 'tarifas', label: 'Membresías, suscripciones y tarifas' },
+  { id: 'transacciones', label: 'Transacciones y fondos' },
+  { id: 'responsabilidad', label: 'Limitación de responsabilidad' },
+  { id: 'propiedad', label: 'Propiedad intelectual' },
+  { id: 'suspension', label: 'Suspensión y terminación' },
+  { id: 'ley', label: 'Ley aplicable y controversias' },
+];
+---
+
+<LegalLayout
+  title="Términos y Condiciones"
+  description="Condiciones de uso de la plataforma LUXUS PERÚ para compradores, vendedores y brókers."
+  updated="2 de septiembre de 2026"
+  sections={sections}
+>
+  <p>
+    Estos términos regulan el acceso y uso de la plataforma operada por
+    {' '}{BRAND.legalName}, RUC {BRAND.ruc}, con domicilio en {BRAND.address}
+    {' '}(«LUXUS PERÚ»). Al solicitar acceso o utilizar la plataforma, usted
+    acepta estas condiciones en su integridad.
+  </p>
+
+  <h2 id="objeto">1. Objeto y naturaleza del servicio</h2>
+  <p>
+    LUXUS PERÚ es una <strong>plataforma privada de intermediación informativa</strong>
+    que pone en contacto a titulares de activos de alto valor con potenciales
+    adquirentes, y facilita el intercambio ordenado y confidencial de
+    documentación entre las partes.
+  </p>
+  <p>LUXUS PERÚ, de manera expresa, <strong>no</strong>:</p>
+  <ul>
+    <li>presta servicios financieros, bancarios ni de intermediación de valores;</li>
+    <li>actúa como agente de pago, custodio ni entidad de escrow;</li>
+    <li>emite asesoría legal, tributaria, contable ni de inversión;</li>
+    <li>garantiza la exactitud de la información aportada por los vendedores;</li>
+    <li>es parte de los contratos que celebren comprador y vendedor.</li>
+  </ul>
+  <p>
+    La verificación que realiza LUXUS PERÚ consiste en la revisión documental
+    descrita en la sección 5 y <strong>no sustituye la due diligence</strong> que
+    corresponde efectuar a cada parte con sus propios asesores.
+  </p>
+
+  <h2 id="admision">2. Admisión y cuentas</h2>
+  <p>
+    El acceso es por invitación. La solicitud se evalúa discrecionalmente y
+    LUXUS PERÚ puede denegarla sin expresión de causa. Las cuentas son
+    personales e intransferibles.
+  </p>
+  <p>
+    El usuario debe activar la autenticación en dos pasos y es responsable de la
+    custodia de sus credenciales, así como de toda actividad realizada desde su
+    cuenta. Debe notificar de inmediato cualquier uso no autorizado.
+  </p>
+
+  <h2 id="niveles">3. Niveles de información</h2>
+  <p>La plataforma escalona la información en tres niveles:</p>
+  <ol>
+    <li>
+      <strong>Nivel I — Público.</strong> Categoría, distrito aproximado, rango de
+      precio, fotografía seleccionada y descripción general. Nunca se publica el
+      precio exacto ni la dirección.
+    </li>
+    <li>
+      <strong>Nivel II — Miembro verificado.</strong> Precio de referencia,
+      ubicación real, valorización y material fotográfico reservado, previa
+      aprobación de la verificación de identidad.
+    </li>
+    <li>
+      <strong>Nivel III — Deal Room.</strong> Documentación registral, financiera,
+      legal, tributaria, técnica y comercial, previa aprobación del vendedor y
+      firma del acuerdo de confidencialidad, y sujeta a permisos por documento
+      con fecha de vencimiento.
+    </li>
+  </ol>
+
+  <h2 id="verificacion">4. Verificación y cumplimiento</h2>
+  <p>
+    El acceso al Nivel II exige completar el proceso de conocimiento del cliente:
+    verificación de identidad, declaración del origen de fondos y patrimonio, y
+    consulta en listas de personas expuestas políticamente, sanciones
+    internacionales y medios adversos.
+  </p>
+  <p>
+    LUXUS PERÚ puede denegar, suspender o revocar el acceso cuando el usuario no
+    complete la verificación, aporte información inexacta o presente
+    coincidencias que impidan continuar la relación conforme a la normativa de
+    prevención del lavado de activos.
+  </p>
+
+  <h2 id="publicacion">5. Publicación de activos</h2>
+  <p>
+    El vendedor declara ser titular del activo o contar con mandato vigente y
+    suficiente para ofrecerlo, y garantiza la veracidad de la información y
+    documentación aportada.
+  </p>
+  <p>
+    Antes de publicar, LUXUS PERÚ revisa la documentación aplicable a la
+    categoría: entre otras, copia literal de partida y certificado de gravámenes
+    ante SUNARP, HR y PU municipales para inmuebles; partida electrónica, ficha
+    RUC ante SUNAT y estados financieros para empresas; tarjeta de
+    identificación vehicular para vehículos; certificado de matrícula ante
+    DICAPI para embarcaciones; y certificado de matrícula y aeronavegabilidad
+    ante la DGAC para aeronaves.
+  </p>
+  <p>
+    LUXUS PERÚ puede rechazar, solicitar cambios o retirar cualquier publicación,
+    en cualquier momento y a su sola discreción.
+  </p>
+
+  <h2 id="dealroom">6. Deal Room y confidencialidad</h2>
+  <p>
+    El acceso al Deal Room requiere la firma previa de un acuerdo de
+    confidencialidad entre las partes. El usuario reconoce y acepta que:
+  </p>
+  <ul>
+    <li>
+      cada documento entregado incorpora una <strong>marca de agua dinámica</strong>
+      con su identificación y la fecha y hora de acceso;
+    </li>
+    <li>
+      cada visualización y descarga queda registrada en un <strong>log de
+      auditoría</strong> junto con su dirección IP y agente de usuario, accesible
+      para el vendedor y para LUXUS PERÚ;
+    </li>
+    <li>
+      los permisos documentales tienen fecha de vencimiento y se revocan
+      automáticamente al cumplirse;
+    </li>
+    <li>
+      la reproducción, distribución o divulgación no autorizada de la
+      documentación constituye incumplimiento del acuerdo de confidencialidad y
+      habilita las acciones legales que correspondan.
+    </li>
+  </ul>
+  <p>
+    Queda prohibido eludir a la plataforma o al vendedor contactando
+    directamente al titular del activo identificado a través del Deal Room.
+  </p>
+
+  <h2 id="tarifas">7. Membresías, suscripciones y tarifas</h2>
+  <p>
+    Las membresías de comprador y las suscripciones de bróker se contratan por
+    períodos anuales o mensuales según el plan, se renuevan automáticamente y
+    pueden cancelarse desde el portal de facturación, con efecto al término del
+    período en curso. Las tarifas de publicación se cotizan por activo y se
+    devengan al aprobarse su publicación.
+  </p>
+  <p>
+    Salvo disposición legal en contrario, los importes abonados no son
+    reembolsables. Los precios se expresan en dólares de los Estados Unidos de
+    América y no incluyen los tributos que resulten aplicables.
+  </p>
+  <p>
+    Las comisiones de éxito por transacción cerrada, cuando se pacten, se
+    facturan de forma independiente fuera de la plataforma; LUXUS PERÚ no las
+    procesa ni retiene a través del sistema de pagos.
+  </p>
+
+  <h2 id="transacciones">8. Transacciones y fondos</h2>
+  <p>
+    Las negociaciones, la documentación definitiva y el cierre son
+    responsabilidad exclusiva de las partes y sus asesores. El movimiento de
+    fondos se canaliza necesariamente a través de una <strong>entidad fiduciaria o
+    de escrow externa</strong> designada por las partes.
+  </p>
+  <p>
+    LUXUS PERÚ <strong>en ningún caso recibe, custodia ni transfiere</strong> los fondos
+    de la transacción. Las funciones de la plataforma relativas al cierre se
+    limitan a registrar el estado del proceso y su lista de verificación.
+  </p>
+
+  <h2 id="responsabilidad">9. Limitación de responsabilidad</h2>
+  <p>
+    La plataforma se presta «tal cual». LUXUS PERÚ no responde por la exactitud,
+    integridad o vigencia de la información aportada por terceros, por las
+    decisiones de inversión adoptadas por los usuarios, ni por el resultado de
+    las negociaciones.
+  </p>
+  <p>
+    En la máxima medida permitida por la ley, la responsabilidad total de
+    LUXUS PERÚ frente a un usuario no excederá el importe efectivamente pagado
+    por dicho usuario en los doce meses anteriores al hecho generador.
+  </p>
+
+  <h2 id="propiedad">10. Propiedad intelectual</h2>
+  <p>
+    La marca LUXUS PERÚ, el software, la interfaz, los reportes de Intelligence y
+    la organización del contenido son titularidad de LUXUS PERÚ. El vendedor
+    conserva la titularidad de las fotografías y documentos que aporta, y
+    concede a LUXUS PERÚ una licencia no exclusiva para exhibirlos en la
+    plataforma conforme al nivel de información que corresponda.
+  </p>
+
+  <h2 id="suspension">11. Suspensión y terminación</h2>
+  <p>
+    LUXUS PERÚ puede suspender o cancelar una cuenta, con efecto inmediato, ante
+    el incumplimiento de estos términos, la aportación de información falsa, la
+    divulgación no autorizada de documentación o cuando resulte exigible por la
+    normativa de cumplimiento. La suspensión revoca todas las sesiones activas y
+    los permisos documentales vigentes.
+  </p>
+
+  <h2 id="ley">12. Ley aplicable y solución de controversias</h2>
+  <p>
+    Estos términos se rigen por las leyes de la República del Perú. Toda
+    controversia derivada de su interpretación o ejecución será sometida a
+    arbitraje de derecho, con sede en Lima, ante el Centro de Arbitraje de la
+    Cámara de Comercio de Lima, conforme a su reglamento. El laudo será
+    definitivo e inapelable.
+  </p>
+</LegalLayout>

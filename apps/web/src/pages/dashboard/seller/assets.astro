@@ -1,0 +1,191 @@
+---
+import DashboardShell from '../../../components/private/DashboardShell.astro';
+import StatCard from '../../../components/private/StatCard.astro';
+import AssetStatusActions from '../../../components/islands/AssetStatusActions.tsx';
+import {
+  CATEGORY_META, formatCents, formatDate, formatPriceRange,
+} from '@luxus/shared';
+import type { AssetCategory, AssetStatus } from '@luxus/shared';
+import { requireRole } from '../../../lib/auth';
+
+const guard = requireRole(Astro, 'seller', 'broker', 'admin');
+if (guard instanceof Response) return guard;
+const session = guard;
+
+const supabase = Astro.locals.supabase;
+
+// Un bróker gestiona tanto lo suyo como lo que representa.
+const { data: broker } = await supabase
+  .from('brokers')
+  .select('id, listing_quota, is_verified')
+  .eq('user_id', session.userId)
+  .maybeSingle();
+
+let query = supabase
+  .from('assets')
+  .select(`
+    id, slug, title, category, status, visibility, tier, district, region,
+    price_min, price_max, price_on_request, view_count, enquiry_count,
+    published_at, created_at, verification_notes,
+    asset_media (id, bucket, storage_path, is_public, sort_order),
+    listing_fees (id, tier, amount_cents, currency, status, due_at)
+  `)
+  .order('created_at', { ascending: false });
+
+query = broker
+  ? query.or(`owner_id.eq.${session.userId},broker_id.eq.${broker.id}`)
+  : query.eq('owner_id', session.userId);
+
+const { data } = await query;
+const assets = data ?? [];
+
+const published = assets.filter((a) => a.status === 'published');
+const inReview = assets.filter((a) => a.status === 'pending_review');
+const drafts = assets.filter((a) => a.status === 'draft' || a.status === 'changes_requested');
+const totalViews = assets.reduce((sum, a) => sum + a.view_count, 0);
+const totalEnquiries = assets.reduce((sum, a) => sum + a.enquiry_count, 0);
+
+const quota = broker?.listing_quota ?? 0;
+const quotaLabel = quota > 0 ? `${published.length + inReview.length} / ${quota}` : String(published.length);
+
+const STATUS_LABEL: Record<AssetStatus, string> = {
+  draft: 'Borrador',
+  pending_review: 'En verificación',
+  changes_requested: 'Cambios requeridos',
+  published: 'Publicado',
+  rejected: 'Rechazado',
+  sold: 'Vendido',
+  archived: 'Archivado',
+};
+---
+
+<DashboardShell title="Mis activos" session={session}>
+  <div class="mb-8 flex flex-wrap items-end justify-between gap-5">
+    <div>
+      <h1 class="font-display text-[32px] leading-tight">Mis activos</h1>
+      <p class="mt-2 text-[14px] text-ink-muted">
+        Publique, edite y siga el estado de verificación de su cartera.
+      </p>
+    </div>
+    <a href="/dashboard/seller/new" class="btn-primary">Publicar activo</a>
+  </div>
+
+  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <StatCard label="Publicados" value={quotaLabel} hint={quota > 0 ? 'Según su plan' : 'Activos visibles'} />
+    <StatCard
+      label="En verificación"
+      value={inReview.length}
+      tone={inReview.length > 0 ? 'gold' : 'default'}
+      hint="En cola del equipo"
+    />
+    <StatCard label="Vistas totales" value={totalViews.toLocaleString('es-PE')} hint="Desde la publicación" />
+    <StatCard label="Consultas" value={totalEnquiries} hint="Enquire Privately" />
+  </div>
+
+  {assets.length === 0 ? (
+    <div class="mt-10 border border-stone bg-white p-12 text-center">
+      <p class="font-display text-[22px]">Aún no tiene activos</p>
+      <p class="mx-auto mt-3 max-w-md text-[14px] leading-relaxed text-ink-muted">
+        Publique su primer activo. Nuestro equipo verificará la documentación
+        antes de que aparezca en las colecciones.
+      </p>
+      <a href="/dashboard/seller/new" class="btn-primary mt-8">Publicar activo</a>
+    </div>
+  ) : (
+    <ul class="mt-10 space-y-4">
+      {assets.map((asset) => {
+        const fee = (asset.listing_fees as unknown as {
+          id: string; amount_cents: number; currency: string; status: string; due_at: string | null;
+        }[] | null)?.[0];
+        const meta = CATEGORY_META[asset.category as AssetCategory];
+
+        return (
+          <li class="border border-stone bg-white">
+            <div class="flex flex-col gap-6 p-6 lg:flex-row lg:items-start">
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-3">
+                  <span class:list={[
+                    'badge',
+                    asset.status === 'published' ? 'border-ink bg-ink text-white'
+                      : asset.status === 'pending_review' ? 'border-gold text-gold-dark'
+                      : asset.status === 'changes_requested' ? 'border-red-400 text-red-700'
+                      : 'border-stone-dark text-ink-muted',
+                  ]}>
+                    {STATUS_LABEL[asset.status as AssetStatus]}
+                  </span>
+                  <span class="text-[11px] uppercase tracking-luxus text-ink-muted">
+                    {meta.label} · {asset.tier === 'signature' ? 'Signature' : 'Private'}
+                  </span>
+                </div>
+
+                <p class="mt-3 font-display text-[21px] leading-snug">
+                  {asset.status === 'published' ? (
+                    <a href={`/asset/${asset.slug}`} class="link-underline">{asset.title}</a>
+                  ) : (
+                    asset.title
+                  )}
+                </p>
+
+                <p class="mt-1.5 text-[13px] text-ink-muted">
+                  {[asset.district, asset.region].filter(Boolean).join(', ')} · {formatPriceRange(asset)}
+                </p>
+
+                {asset.verification_notes && asset.status === 'changes_requested' && (
+                  <p class="mt-4 border-l-2 border-red-600 bg-red-50 px-4 py-3 text-[13px] leading-relaxed text-red-900">
+                    <strong class="mb-1 block text-[11px] uppercase tracking-luxus">Observaciones del equipo</strong>
+                    {asset.verification_notes}
+                  </p>
+                )}
+
+                {fee && fee.status !== 'paid' && (
+                  <div class="mt-4 flex flex-wrap items-center gap-4 border border-gold bg-ivory px-4 py-3">
+                    <p class="text-[13px] text-ink">
+                      Tarifa de publicación pendiente:{' '}
+                      <strong>{formatCents(fee.amount_cents, fee.currency)}</strong>
+                      {fee.due_at && <span class="text-ink-muted">{' · vence ' + formatDate(fee.due_at)}</span>}
+                    </p>
+                  </div>
+                )}
+
+                <dl class="mt-5 flex flex-wrap gap-x-8 gap-y-2 text-[12.5px] text-ink-muted">
+                  <div class="flex gap-2">
+                    <dt>Vistas</dt>
+                    <dd class="text-ink">{asset.view_count.toLocaleString('es-PE')}</dd>
+                  </div>
+                  <div class="flex gap-2">
+                    <dt>Consultas</dt>
+                    <dd class="text-ink">{asset.enquiry_count}</dd>
+                  </div>
+                  {asset.published_at && (
+                    <div class="flex gap-2">
+                      <dt>Publicado</dt>
+                      <dd class="text-ink">{formatDate(asset.published_at)}</dd>
+                    </div>
+                  )}
+                </dl>
+              </div>
+
+              <div class="shrink-0 lg:w-56">
+                <AssetStatusActions
+                  client:visible
+                  assetId={asset.id}
+                  slug={asset.slug}
+                  status={asset.status as AssetStatus}
+                  hasPendingFee={Boolean(fee && fee.status !== 'paid')}
+                />
+              </div>
+            </div>
+          </li>
+        );
+      })}
+    </ul>
+  )}
+
+  {drafts.length > 0 && (
+    <p class="mt-8 border-l-2 border-stone-dark bg-white px-5 py-4 text-[13px] leading-relaxed text-ink-muted">
+      Tiene {drafts.length} {drafts.length === 1 ? 'activo' : 'activos'} sin enviar a
+      verificación. Un activo necesita al menos tres fotografías públicas antes
+      de poder enviarse.
+    </p>
+  )}
+</DashboardShell>

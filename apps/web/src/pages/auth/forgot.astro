@@ -1,0 +1,12 @@
+---
+import AuthLayout from '../../layouts/AuthLayout.astro';
+import ForgotPasswordForm from '../../components/islands/ForgotPasswordForm.tsx';
+---
+
+<AuthLayout
+  title="Recuperar contraseña"
+  heading="Recuperar acceso"
+  subheading="Le enviaremos un enlace para establecer una contraseña nueva."
+>
+  <ForgotPasswordForm client:load />
+</AuthLayout>

@@ -1,0 +1,151 @@
+---
+import DashboardShell from '../../components/private/DashboardShell.astro';
+import AuditExportButton from '../../components/islands/AuditExportButton.tsx';
+import { formatDateTime } from '@luxus/shared';
+import { requireRole } from '../../lib/auth';
+import { apiFetch } from '../../lib/api';
+
+const guard = requireRole(Astro, 'admin');
+if (guard instanceof Response) return guard;
+const session = guard;
+
+const params = Astro.url.searchParams;
+const action = params.get('action') ?? '';
+const from = params.get('from') ?? '';
+const to = params.get('to') ?? '';
+const page = Math.max(1, Number(params.get('page') ?? '1'));
+
+interface AuditEntry {
+  id: number;
+  action: string;
+  actor_email: string | null;
+  actor_role: string | null;
+  entity_type: string | null;
+  entity_id: string | null;
+  deal_id: string | null;
+  asset_id: string | null;
+  document_id: string | null;
+  ip_address: string | null;
+  created_at: string;
+}
+
+const query = new URLSearchParams();
+if (action) query.set('action', action);
+if (from) query.set('from', new Date(from).toISOString());
+if (to) query.set('to', new Date(to).toISOString());
+query.set('page', String(page));
+query.set('pageSize', '50');
+
+let entries: AuditEntry[] = [];
+let total = 0;
+try {
+  const data = await apiFetch<{ entries: AuditEntry[]; total: number }>(
+    `/v1/admin/audit?${query.toString()}`,
+    { token: session.accessToken },
+  );
+  entries = data.entries;
+  total = data.total;
+} catch {
+  entries = [];
+}
+
+const pageCount = Math.max(1, Math.ceil(total / 50));
+
+function pageHref(target: number): string {
+  const next = new URLSearchParams(Astro.url.searchParams);
+  next.set('page', String(target));
+  return `/admin/audit?${next.toString()}`;
+}
+
+// Query string sin `page`, para que la exportación siempre traiga todo el filtro.
+const exportQuery = new URLSearchParams();
+if (action) exportQuery.set('action', action);
+if (from) exportQuery.set('from', new Date(from).toISOString());
+if (to) exportQuery.set('to', new Date(to).toISOString());
+---
+
+<DashboardShell title="Auditoría" session={session}>
+  <div class="mb-8 flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <h1 class="font-display text-[32px] leading-tight">Registro de auditoría</h1>
+      <p class="mt-2 text-[14px] text-ink-muted">{total} eventos registrados</p>
+    </div>
+    <AuditExportButton client:visible queryString={exportQuery.toString()} />
+  </div>
+
+  <form method="GET" class="mb-6 flex flex-wrap gap-3 border border-stone bg-white p-5">
+    <input
+      type="text" name="action" defaultValue={action} placeholder="Acción (ej.: document.view)"
+      class="field w-56"
+    />
+    <label class="flex items-center gap-2 text-[12px] text-ink-muted">
+      Desde
+      <input type="date" name="from" defaultValue={from} class="field w-40" />
+    </label>
+    <label class="flex items-center gap-2 text-[12px] text-ink-muted">
+      Hasta
+      <input type="date" name="to" defaultValue={to} class="field w-40" />
+    </label>
+    <button type="submit" class="btn-outline px-6">Filtrar</button>
+    {(action || from || to) && (
+      <a href="/admin/audit" class="btn-ghost px-6 py-2.5">Limpiar</a>
+    )}
+  </form>
+
+  {entries.length === 0 ? (
+    <p class="border border-stone bg-white p-8 text-[14px] text-ink-muted">Sin eventos.</p>
+  ) : (
+    <div class="overflow-x-auto border border-stone bg-white">
+      <table class="w-full min-w-[56rem] text-left">
+        <caption class="sr-only">Registro de auditoría</caption>
+        <thead>
+          <tr class="border-b border-stone text-[10px] uppercase tracking-luxus text-ink-muted">
+            <th scope="col" class="px-5 py-3.5 font-normal">Fecha</th>
+            <th scope="col" class="px-5 py-3.5 font-normal">Acción</th>
+            <th scope="col" class="px-5 py-3.5 font-normal">Actor</th>
+            <th scope="col" class="px-5 py-3.5 font-normal">Entidad</th>
+            <th scope="col" class="px-5 py-3.5 font-normal">IP</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-stone">
+          {entries.map((entry) => (
+            <tr class="text-[13px]">
+              <td class="whitespace-nowrap px-5 py-3 text-ink-muted">{formatDateTime(entry.created_at)}</td>
+              <td class="px-5 py-3 font-mono text-[12px]">{entry.action}</td>
+              <td class="px-5 py-3 text-ink-muted">
+                {entry.actor_email ?? '—'}
+                {entry.actor_role && <span class="ml-1.5 text-[10px] uppercase tracking-luxus text-ink-muted/60">{entry.actor_role}</span>}
+              </td>
+              <td class="px-5 py-3 font-mono text-[11px] text-ink-muted">
+                {entry.entity_type ?? '—'}
+                {entry.deal_id && <span class="ml-1.5">deal:{entry.deal_id.slice(0, 8)}</span>}
+                {entry.document_id && <span class="ml-1.5">doc:{entry.document_id.slice(0, 8)}</span>}
+              </td>
+              <td class="px-5 py-3 font-mono text-[12px] text-ink-muted">{entry.ip_address ?? '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )}
+
+  {pageCount > 1 && (
+    <nav class="mt-8 flex items-center justify-center gap-2" aria-label="Paginación">
+      <a
+        href={pageHref(page - 1)}
+        aria-disabled={page === 1}
+        class:list={['btn-ghost px-5 py-2.5', page === 1 && 'pointer-events-none opacity-30']}
+      >
+        ← Anterior
+      </a>
+      <span class="px-4 text-[12px] text-ink-muted">Página {page} de {pageCount}</span>
+      <a
+        href={pageHref(page + 1)}
+        aria-disabled={page === pageCount}
+        class:list={['btn-ghost px-5 py-2.5', page === pageCount && 'pointer-events-none opacity-30']}
+      >
+        Siguiente →
+      </a>
+    </nav>
+  )}
+</DashboardShell>

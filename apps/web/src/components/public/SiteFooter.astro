@@ -1,0 +1,83 @@
+---
+import Logo from '../ui/Logo.astro';
+import { BRAND, CATEGORY_META, CATEGORY_ORDER } from '@luxus/shared';
+
+const year = new Date().getFullYear();
+---
+
+<footer class="border-t border-stone bg-ink text-white/80">
+  <div class="container-page py-16 lg:py-20">
+    <div class="grid gap-12 lg:grid-cols-12">
+      <div class="lg:col-span-4">
+        <Logo variant="light" size="lg" withTagline />
+        <p class="mt-7 max-w-sm text-[14px] leading-relaxed text-white/60">
+          Mercado privado de activos de ultra alto patrimonio en Perú. Inventario
+          curado, titularidad verificada y transacciones conducidas bajo
+          confidencialidad.
+        </p>
+      </div>
+
+      <nav class="lg:col-span-2" aria-labelledby="footer-collections">
+        <h2 id="footer-collections" class="text-eyebrow uppercase tracking-luxus text-white/[45%]">
+          Colecciones
+        </h2>
+        <ul class="mt-5 space-y-3">
+          {CATEGORY_ORDER.map((category) => (
+            <li>
+              <a href={`/collection/${category}`} class="link-underline text-[14px] text-white/75 hover:text-white">
+                {CATEGORY_META[category].label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+
+      <nav class="lg:col-span-2" aria-labelledby="footer-platform">
+        <h2 id="footer-platform" class="text-eyebrow uppercase tracking-luxus text-white/[45%]">
+          Plataforma
+        </h2>
+        <ul class="mt-5 space-y-3">
+          <li><a href="/private-access" class="link-underline text-[14px] text-white/75 hover:text-white">Private Access</a></li>
+          <li><a href="/membership" class="link-underline text-[14px] text-white/75 hover:text-white">Membresías</a></li>
+          <li><a href="/intelligence" class="link-underline text-[14px] text-white/75 hover:text-white">Intelligence</a></li>
+          <li><a href="/sell" class="link-underline text-[14px] text-white/75 hover:text-white">Vender un activo</a></li>
+          <li><a href="/how-it-works" class="link-underline text-[14px] text-white/75 hover:text-white">Cómo funciona</a></li>
+        </ul>
+      </nav>
+
+      <nav class="lg:col-span-2" aria-labelledby="footer-legal">
+        <h2 id="footer-legal" class="text-eyebrow uppercase tracking-luxus text-white/[45%]">
+          Legal
+        </h2>
+        <ul class="mt-5 space-y-3">
+          <li><a href="/legal/terms" class="link-underline text-[14px] text-white/75 hover:text-white">Términos y condiciones</a></li>
+          <li><a href="/legal/privacy" class="link-underline text-[14px] text-white/75 hover:text-white">Política de privacidad</a></li>
+          <li><a href="/legal/cookies" class="link-underline text-[14px] text-white/75 hover:text-white">Cookies</a></li>
+          <li><a href="/contact" class="link-underline text-[14px] text-white/75 hover:text-white">Contacto</a></li>
+        </ul>
+      </nav>
+
+      <div class="lg:col-span-2">
+        <h2 class="text-eyebrow uppercase tracking-luxus text-white/[45%]">Oficina</h2>
+        <address class="mt-5 space-y-3 text-[14px] not-italic text-white/75">
+          <p>{BRAND.address}</p>
+          <p><a href={`mailto:${BRAND.email}`} class="link-underline hover:text-white">{BRAND.email}</a></p>
+          <p><a href={`tel:${BRAND.phone.replace(/\s/g, '')}`} class="link-underline hover:text-white">{BRAND.phone}</a></p>
+        </address>
+      </div>
+    </div>
+
+    <div class="mt-16 border-t border-white/10 pt-8">
+      <div class="flex flex-col gap-6 text-[12px] leading-relaxed text-white/[45%] lg:flex-row lg:items-start lg:justify-between">
+        <p>© {year} {BRAND.legalName} · RUC {BRAND.ruc}. Todos los derechos reservados.</p>
+        <p class="max-w-2xl lg:text-right">
+          LUXUS PERÚ opera como plataforma de intermediación e intercambio de
+          información entre partes. No presta servicios financieros, no actúa
+          como agente de pago ni custodia fondos: el escrow y la fiducia son
+          externos. La información publicada no constituye asesoría legal,
+          tributaria ni de inversión.
+        </p>
+      </div>
+    </div>
+  </div>
+</footer>

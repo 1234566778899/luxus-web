@@ -1,0 +1,20 @@
+---
+import PublicLayout from '../layouts/PublicLayout.astro';
+---
+
+<PublicLayout title="Página no encontrada" description="La página solicitada no existe.">
+  <section class="container-page flex min-h-[60vh] items-center py-24">
+    <div class="mx-auto max-w-lg text-center">
+      <p class="font-display text-[64px] leading-none text-gold">404</p>
+      <h1 class="mt-6 font-display text-[32px] leading-tight">Esta página no existe</h1>
+      <p class="mt-5 text-[15px] leading-relaxed text-ink-muted">
+        Puede que el activo se haya retirado, que la operación ya esté cerrada, o
+        que el contenido solo esté disponible para miembros verificados.
+      </p>
+      <div class="mt-10 flex flex-col justify-center gap-3 sm:flex-row">
+        <a href="/" class="btn-primary">Volver al inicio</a>
+        <a href="/collection/real-estate" class="btn-outline">Ver colecciones</a>
+      </div>
+    </div>
+  </section>
+</PublicLayout>

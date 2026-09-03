@@ -1,0 +1,24 @@
+---
+import DashboardShell from '../../../components/private/DashboardShell.astro';
+import ArticleEditor from '../../../components/islands/ArticleEditor.tsx';
+import { requireRole } from '../../../lib/auth';
+
+const guard = requireRole(Astro, 'admin');
+if (guard instanceof Response) return guard;
+const session = guard;
+---
+
+<DashboardShell title="Nuevo artículo" session={session}>
+  <div class="mb-8">
+    <nav aria-label="Migas de pan" class="mb-6">
+      <ol class="flex items-center gap-2 text-[11px] uppercase tracking-luxus text-ink-muted">
+        <li><a href="/admin/intelligence" class="link-underline">Intelligence</a></li>
+        <li aria-hidden="true">·</li>
+        <li aria-current="page" class="text-ink">Nuevo</li>
+      </ol>
+    </nav>
+    <h1 class="font-display text-[32px] leading-tight">Nuevo artículo</h1>
+  </div>
+
+  <ArticleEditor client:load />
+</DashboardShell>

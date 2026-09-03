@@ -1,0 +1,149 @@
+---
+import PublicLayout from '../layouts/PublicLayout.astro';
+import { CATEGORY_META, CATEGORY_ORDER } from '@luxus/shared';
+
+// Requisitos documentales por categoría, en el mismo orden que el checklist
+// que ejecuta el Admin al verificar. Publicarlos aquí evita solicitudes que no
+// pueden prosperar.
+const REQUIREMENTS: Record<string, { authority: string; items: string[] }> = {
+  'real-estate': {
+    authority: 'SUNARP · SAT / Municipalidad',
+    items: [
+      'Copia literal de partida registral',
+      'Certificado Registral Inmobiliario (CRI)',
+      'HR y PU del ejercicio vigente',
+      'No adeudo de Impuesto Predial y arbitrios',
+      'Certificado de cargas y gravámenes',
+    ],
+  },
+  companies: {
+    authority: 'SUNARP · SUNAT',
+    items: [
+      'Partida electrónica de la sociedad',
+      'Estados financieros auditados (3 ejercicios)',
+      'Ficha RUC y situación tributaria',
+      'Vigencia de poder del representante legal',
+      'Estructura accionaria y matrícula de acciones',
+    ],
+  },
+  vehicles: {
+    authority: 'SUNARP · MTC',
+    items: [
+      'Tarjeta de Identificación Vehicular (TIV)',
+      'Certificado de gravámenes vehicular',
+      'DUA de importación, si corresponde',
+      'Historial de procedencia y mantenimiento',
+    ],
+  },
+  yachts: {
+    authority: 'DICAPI',
+    items: [
+      'Certificado de matrícula de nave',
+      'Certificado de navegabilidad vigente',
+      'Certificado de gravámenes de nave',
+      'Survey técnico o informe de condición',
+    ],
+  },
+  aircraft: {
+    authority: 'DGAC',
+    items: [
+      'Certificado de matrícula de aeronave',
+      'Certificado de aeronavegabilidad',
+      'Logbooks de célula, motores y hélices',
+      'Estado de AD/SB y programa de mantenimiento',
+    ],
+  },
+};
+---
+
+<PublicLayout
+  title="Presentar un activo"
+  description="Publique propiedades, empresas, vehículos de colección, yates o aeronaves en el mercado privado de LUXUS PERÚ."
+>
+  <section class="relative overflow-hidden bg-ink text-white">
+    <img
+      src="https://picsum.photos/seed/luxus-sell/2000/1100"
+      alt=""
+      aria-hidden="true"
+      class="absolute inset-0 h-full w-full object-cover opacity-30"
+    />
+    <div class="container-page relative py-24 lg:py-32">
+      <div class="max-w-2xl">
+        <p class="text-eyebrow uppercase tracking-wider2 text-gold-light">Vendedores y brókers</p>
+        <h1 class="mt-5 font-display text-[42px] leading-tight sm:text-[54px]">
+          Vender sin exponer el activo
+        </h1>
+        <p class="mt-7 text-[16px] leading-relaxed text-white/70 text-pretty">
+          Publique con precio y ubicación reservados. La documentación se abre
+          solo ante compradores verificados que hayan firmado un acuerdo de
+          confidencialidad, con permisos por archivo y fecha de vencimiento.
+        </p>
+        <div class="mt-11 flex flex-col gap-3 sm:flex-row">
+          <a href="/private-access" class="btn-gold">Presentar un activo</a>
+          <a href="/membership" class="btn-light">Ver planes de bróker</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="container-page py-20" aria-labelledby="how-title">
+    <h2 id="how-title" class="font-display text-[32px]">Cómo funciona</h2>
+
+    <ol class="mt-12 grid gap-px overflow-hidden border border-stone bg-stone sm:grid-cols-2 lg:grid-cols-5">
+      {[
+        { n: '01', t: 'Presentación', d: 'Nos describe el activo y su situación registral.' },
+        { n: '02', t: 'Evaluación', d: 'Verificamos titularidad y documentación aplicable.' },
+        { n: '03', t: 'Ficha', d: 'Producimos la ficha pública sin precio ni dirección exactos.' },
+        { n: '04', t: 'Deal Room', d: 'Usted decide quién accede a qué documento y por cuánto tiempo.' },
+        { n: '05', t: 'Cierre', d: 'Oferta, LOI y checklist. El escrow lo lleva una entidad externa.' },
+      ].map((step) => (
+        <li class="bg-white p-8">
+          <p class="font-display text-[13px] text-gold-dark">{step.n}</p>
+          <h3 class="mt-4 font-display text-[20px]">{step.t}</h3>
+          <p class="mt-2 text-[13.5px] leading-relaxed text-ink-muted">{step.d}</p>
+        </li>
+      ))}
+    </ol>
+  </section>
+
+  <section class="border-t border-stone bg-ivory py-20" aria-labelledby="req-title">
+    <div class="container-page">
+      <h2 id="req-title" class="font-display text-[32px]">Documentación por categoría</h2>
+      <p class="mt-4 max-w-2xl text-[15px] leading-relaxed text-ink-muted">
+        Estos son los documentos que revisa nuestro equipo antes de publicar.
+        Tenerlos listos acorta el proceso de verificación de semanas a días.
+      </p>
+
+      <div class="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+        {CATEGORY_ORDER.map((category) => {
+          const req = REQUIREMENTS[category]!;
+          return (
+            <div class="border border-stone bg-white p-7">
+              <h3 class="font-display text-[21px]">{CATEGORY_META[category].label}</h3>
+              <p class="mt-1.5 text-[11px] uppercase tracking-luxus text-gold-dark">{req.authority}</p>
+              <ul class="mt-5 space-y-2.5">
+                {req.items.map((item) => (
+                  <li class="flex gap-2.5 text-[13.5px] leading-relaxed text-ink-muted">
+                    <span aria-hidden="true" class="text-stone-dark">—</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  </section>
+
+  <section class="container-page py-20">
+    <div class="mx-auto max-w-2xl text-center">
+      <h2 class="font-display text-[32px] leading-tight">¿Su activo encaja?</h2>
+      <p class="mt-5 text-[15px] leading-relaxed text-ink-muted">
+        Trabajamos con activos desde USD 500,000. Cada mandato se evalúa
+        individualmente y bajo reserva.
+      </p>
+      <a href="/private-access" class="btn-primary mt-9">Presentar un activo</a>
+    </div>
+  </section>
+</PublicLayout>

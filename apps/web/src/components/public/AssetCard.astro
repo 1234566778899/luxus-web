@@ -1,0 +1,104 @@
+---
+import type { AssetMediaRow, AssetRow } from '@luxus/shared';
+import {
+  CATEGORY_META, VISIBILITY_LABELS, cardSpecsFor,
+  formatApproximateLocation, formatPriceRange, formatSpecValue,
+} from '@luxus/shared';
+import { coverUrl } from '../../lib/media';
+import SaveHeart from '../islands/SaveHeart.tsx';
+
+interface Props {
+  asset: AssetRow & { asset_media?: AssetMediaRow[] };
+  /** La primera fila de la portada se carga con prioridad. */
+  priority?: boolean;
+  size?: 'default' | 'large';
+}
+
+const { asset, priority = false, size = 'default' } = Astro.props;
+
+const cover = coverUrl(asset.asset_media, asset.slug);
+const location = formatApproximateLocation(asset);
+const price = formatPriceRange(asset);
+const category = CATEGORY_META[asset.category];
+
+// Dos o tres specs, elegidas por categoría: es lo que distingue una ficha de
+// inmueble de una de aeronave en el mismo grid.
+const specs = asset.specs as Record<string, unknown>;
+const cardSpecs = cardSpecsFor(asset.category)
+  .filter((field) => specs?.[field.key] !== undefined && specs?.[field.key] !== null)
+  .slice(0, 3);
+
+const badgeClass =
+  asset.visibility === 'off_market'
+    ? 'badge-offmkt'
+    : asset.visibility === 'private'
+      ? 'badge-private'
+      : 'badge-verified';
+---
+
+<article class="group">
+  <div class:list={['relative overflow-hidden bg-stone', size === 'large' ? 'aspect-[3/2]' : 'aspect-card']}>
+    <a href={`/asset/${asset.slug}`} class="absolute inset-0 block focus-visible:outline-none" aria-label={asset.title}>
+      <img
+        src={cover}
+        alt={`${asset.title} — ${location}`}
+        loading={priority ? 'eager' : 'lazy'}
+        fetchpriority={priority ? 'high' : 'auto'}
+        decoding="async"
+        width={1600}
+        height={1200}
+        class="h-full w-full object-cover transition-transform duration-[900ms] ease-luxus group-hover:scale-[1.04]"
+      />
+    </a>
+
+    <div class="pointer-events-none absolute left-0 top-0 flex w-full items-start justify-between p-4">
+      <span class:list={[badgeClass, 'pointer-events-auto']}>
+        {VISIBILITY_LABELS[asset.visibility]}
+      </span>
+      <span class="pointer-events-auto">
+        <SaveHeart client:visible assetId={asset.id} />
+      </span>
+    </div>
+
+    {asset.is_featured && (
+      <div class="pointer-events-none absolute left-4 bottom-4">
+        <span class="badge border-transparent bg-ink/90 text-white backdrop-blur-sm">
+          Signature
+        </span>
+      </div>
+    )}
+  </div>
+
+  <a href={`/asset/${asset.slug}`} class="block pt-5 focus-visible:outline-none">
+    <!-- Precio primero: es lo que se lee al primer vistazo, como en un
+         marketplace de referencia. El rango público nunca revela el exacto. -->
+    <p class:list={['font-display leading-none text-ink', size === 'large' ? 'text-[26px]' : 'text-[22px]']}>
+      {price}
+    </p>
+
+    <h3 class:list={[
+      'mt-2.5 leading-snug text-ink',
+      size === 'large' ? 'text-[18px]' : 'text-[16px]',
+    ]}>
+      <span class="link-underline">{asset.title}</span>
+    </h3>
+
+    <p class="mt-2 flex flex-wrap items-center gap-x-2 text-[12.5px] text-ink-muted">
+      <span>{category.label}</span>
+      <span aria-hidden="true" class="text-stone-dark">·</span>
+      <span>{location}</span>
+    </p>
+
+    {cardSpecs.length > 0 && (
+      <dl class="mt-2 flex flex-wrap items-center gap-x-2 text-[12.5px] text-ink-muted">
+        {cardSpecs.map((field, index) => (
+          <div class="flex items-center gap-2">
+            {index > 0 && <span aria-hidden="true" class="text-stone-dark">·</span>}
+            <dt class="sr-only">{field.label}</dt>
+            <dd>{formatSpecValue(specs[field.key], field.unit ?? field.cardUnit)}</dd>
+          </div>
+        ))}
+      </dl>
+    )}
+  </a>
+</article>

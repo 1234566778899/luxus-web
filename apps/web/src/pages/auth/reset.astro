@@ -1,0 +1,12 @@
+---
+import AuthLayout from '../../layouts/AuthLayout.astro';
+import ResetPasswordForm from '../../components/islands/ResetPasswordForm.tsx';
+---
+
+<AuthLayout
+  title="Nueva contraseña"
+  heading="Establecer contraseña"
+  subheading="Elija una contraseña robusta. Tras guardarla deberá acceder con su segundo factor."
+>
+  <ResetPasswordForm client:load />
+</AuthLayout>

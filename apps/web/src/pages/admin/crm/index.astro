@@ -1,0 +1,147 @@
+---
+import DashboardShell from '../../../components/private/DashboardShell.astro';
+import LeadQuickCreate from '../../../components/islands/LeadQuickCreate.tsx';
+import { formatDate, formatUsdCompact } from '@luxus/shared';
+import { requireRole } from '../../../lib/auth';
+import { apiFetch } from '../../../lib/api';
+
+const guard = requireRole(Astro, 'admin');
+if (guard instanceof Response) return guard;
+const session = guard;
+
+const kind = (Astro.url.searchParams.get('kind') ?? 'seller_pipeline') as
+  'seller_pipeline' | 'buyer_enquiry';
+
+interface Lead {
+  id: string;
+  kind: string;
+  stage: string;
+  name: string;
+  email: string | null;
+  company: string | null;
+  category: string | null;
+  estimated_value: number | null;
+  next_action: string | null;
+  next_action_at: string | null;
+  updated_at: string;
+  assignee: { id: string; full_name: string | null; email: string } | null;
+}
+
+let leads: Lead[] = [];
+try {
+  const data = await apiFetch<{ leads: Lead[] }>(`/v1/crm/leads?kind=${kind}`, {
+    token: session.accessToken,
+  });
+  leads = data.leads;
+} catch {
+  leads = [];
+}
+
+const STAGES = ['contacted', 'interested', 'documentation', 'approved', 'listed'] as const;
+
+const STAGE_LABEL: Record<string, string> = {
+  contacted: 'Contactado', interested: 'Interesado', documentation: 'Documentación',
+  approved: 'Aprobado', listed: 'Listado', lost: 'Perdido',
+};
+
+const lost = leads.filter((l) => l.stage === 'lost');
+
+// Miembros del equipo, para asignar leads desde el detalle.
+const { data: staff } = await Astro.locals.supabase
+  .from('profiles')
+  .select('id, full_name, email')
+  .eq('role', 'admin')
+  .order('full_name');
+---
+
+<DashboardShell title="CRM" session={session}>
+  <div class="mb-8 flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <h1 class="font-display text-[32px] leading-tight">CRM</h1>
+      <p class="mt-2 text-[14px] text-ink-muted">
+        {kind === 'seller_pipeline'
+          ? 'Captación de activos off-market.'
+          : 'Consultas «Enquire Privately» de compradores.'}
+      </p>
+    </div>
+    <LeadQuickCreate client:visible defaultKind={kind} staff={staff ?? []} />
+  </div>
+
+  <nav class="mb-8 flex gap-1 border-b border-stone" aria-label="Tipo de lead">
+    {[
+      { key: 'seller_pipeline', label: 'Captación de vendedores' },
+      { key: 'buyer_enquiry', label: 'Consultas de compradores' },
+    ].map((tab) => (
+      <a
+        href={`/admin/crm?kind=${tab.key}`}
+        aria-current={kind === tab.key ? 'page' : undefined}
+        class:list={[
+          'border-b-2 px-4 py-3 text-[12px] uppercase tracking-luxus transition-colors',
+          kind === tab.key ? 'border-ink text-ink' : 'border-transparent text-ink-muted hover:text-ink',
+        ]}
+      >
+        {tab.label}
+      </a>
+    ))}
+  </nav>
+
+  <!-- Tablero por etapa -->
+  <div class="grid gap-4 overflow-x-auto pb-4 lg:grid-cols-5" style="grid-auto-columns: minmax(220px, 1fr);">
+    {STAGES.map((stage) => {
+      const stageLeads = leads.filter((l) => l.stage === stage);
+      return (
+        <div class="min-w-[240px]">
+          <div class="flex items-center justify-between border-b border-stone pb-2.5">
+            <p class="text-[11px] uppercase tracking-luxus text-ink-muted">{STAGE_LABEL[stage]}</p>
+            <span class="text-[11px] text-ink-muted">{stageLeads.length}</span>
+          </div>
+
+          <ul class="mt-3 space-y-2.5">
+            {stageLeads.map((lead) => (
+              <li>
+                <a href={`/admin/crm/${lead.id}`} class="block border border-stone bg-white p-4 transition-colors hover:border-ink">
+                  <p class="text-[13.5px] leading-snug">{lead.name}</p>
+                  {lead.company && <p class="mt-1 text-[12px] text-ink-muted">{lead.company}</p>}
+                  {lead.estimated_value && (
+                    <p class="mt-1.5 text-[13px]">{formatUsdCompact(lead.estimated_value)}</p>
+                  )}
+                  {lead.next_action_at && (
+                    <p class="mt-2 text-[11px] uppercase tracking-luxus text-gold-dark">
+                      {formatDate(lead.next_action_at)}
+                    </p>
+                  )}
+                  {lead.assignee && (
+                    <p class="mt-1.5 text-[11px] text-ink-muted/70">
+                      {lead.assignee.full_name ?? lead.assignee.email}
+                    </p>
+                  )}
+                </a>
+              </li>
+            ))}
+            {stageLeads.length === 0 && (
+              <li class="border border-dashed border-stone p-4 text-center text-[12px] text-ink-muted/60">
+                Vacío
+              </li>
+            )}
+          </ul>
+        </div>
+      );
+    })}
+  </div>
+
+  {lost.length > 0 && (
+    <section class="mt-12" aria-labelledby="lost-title">
+      <h2 id="lost-title" class="font-display text-[22px]">Perdidos ({lost.length})</h2>
+      <ul class="mt-4 divide-y divide-stone border border-stone bg-white">
+        {lost.map((lead) => (
+          <li>
+            <a href={`/admin/crm/${lead.id}`} class="flex items-center justify-between gap-4 p-4 transition-colors hover:bg-ivory">
+              <span class="text-[13.5px]">{lead.name}</span>
+              <span class="text-[12px] text-ink-muted">{formatDate(lead.updated_at)}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
+</DashboardShell>

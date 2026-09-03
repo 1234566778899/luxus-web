@@ -1,0 +1,57 @@
+---
+interface Props {
+  variant?: 'dark' | 'light';
+  size?: 'sm' | 'md' | 'lg';
+  href?: string | null;
+  withTagline?: boolean;
+  /**
+   * El logo vive dentro de un encabezado `transparent` que pasa de claro a
+   * blanco sólido al hacer scroll (`group/header` + `data-scrolled`). Sin
+   * esto, un `variant="light"` fijado en el servidor se queda blanco sobre
+   * blanco en cuanto el header se vuelve sólido.
+   */
+  reactive?: boolean;
+}
+
+const { variant = 'dark', size = 'md', href = '/', withTagline = false, reactive = false } = Astro.props;
+
+const sizes = {
+  sm: { word: 'text-[13px]', mark: 'h-5 w-5', tag: 'text-[8px]' },
+  md: { word: 'text-[15px]', mark: 'h-6 w-6', tag: 'text-[9px]' },
+  lg: { word: 'text-[22px]', mark: 'h-9 w-9', tag: 'text-[11px]' },
+} as const;
+
+const s = sizes[size];
+const color =
+  variant === 'light'
+    ? reactive
+      ? 'text-white group-data-[scrolled=true]/header:text-ink'
+      : 'text-white'
+    : 'text-ink';
+const Tag = href ? 'a' : 'div';
+---
+
+<Tag
+  href={href ?? undefined}
+  class:list={['group inline-flex items-center gap-3', color]}
+  aria-label="LUXUS PERÚ — inicio"
+>
+  {/* Marca: triángulo y globo, tomados del logotipo corporativo. */}
+  <svg class:list={[s.mark, 'shrink-0']} viewBox="0 0 40 40" fill="none" aria-hidden="true">
+    <path d="M20 3 L37 34 H3 Z" stroke="currentColor" stroke-width="1.6" fill="none" />
+    <circle cx="20" cy="24" r="7.5" stroke="currentColor" stroke-width="1.2" fill="none" />
+    <circle cx="20" cy="24" r="4" fill="#0F6E6E" opacity="0.9" />
+    <path d="M12.5 24h15" stroke="currentColor" stroke-width="0.8" opacity="0.5" />
+  </svg>
+
+  <span class="flex flex-col leading-none">
+    <span class:list={[s.word, 'font-sans font-medium uppercase tracking-wider2']}>
+      Luxus <span class="text-gold">Perú</span>
+    </span>
+    {withTagline && (
+      <span class:list={[s.tag, 'mt-1.5 uppercase tracking-luxus opacity-60']}>
+        Exceptional Assets · Private Transactions
+      </span>
+    )}
+  </span>
+</Tag>

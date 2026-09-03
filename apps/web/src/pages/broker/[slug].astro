@@ -1,0 +1,153 @@
+---
+import PublicLayout from '../../layouts/PublicLayout.astro';
+import AssetCard from '../../components/public/AssetCard.astro';
+import { formatDate } from '@luxus/shared';
+
+const { slug } = Astro.params;
+if (!slug) return Astro.redirect('/404', 302);
+
+const supabase = Astro.locals.supabase;
+
+// RLS solo expone públicamente los brókers verificados.
+const { data: broker } = await supabase
+  .from('brokers')
+  .select('*')
+  .eq('slug', slug)
+  .maybeSingle();
+
+if (!broker) {
+  return new Response(null, { status: 404, statusText: 'Not found' });
+}
+
+const { data: assets } = await supabase
+  .from('assets')
+  .select(`
+    id, slug, reference_code, category, title, headline, description_public,
+    district, province, region, country, price_currency, price_min, price_max,
+    price_on_request, visibility, status, tier, specs, is_featured, featured_rank,
+    ownership_verified, registry_reviewed, documentation_reviewed, valuation_available,
+    published_at, created_at, updated_at, owner_id, broker_id, view_count, enquiry_count,
+    verification_notes, verified_at, verified_by, sold_at, archived_at,
+    asset_media (id, bucket, storage_path, is_public, sort_order, alt_text)
+  `)
+  .eq('broker_id', broker.id)
+  .eq('status', 'published')
+  .order('published_at', { ascending: false });
+
+const portfolio = (assets ?? []) as never[];
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'RealEstateAgent',
+  name: broker.company_name,
+  description: broker.bio ?? undefined,
+  telephone: broker.phone ?? undefined,
+  url: broker.website ?? undefined,
+  address: broker.office_address
+    ? { '@type': 'PostalAddress', streetAddress: broker.office_address, addressCountry: 'PE' }
+    : undefined,
+};
+---
+
+<PublicLayout
+  title={broker.company_name}
+  description={broker.bio ?? `Perfil de ${broker.company_name} en LUXUS PERÚ.`}
+  jsonLd={jsonLd}
+>
+  <section class="border-b border-stone bg-ivory">
+    <div class="container-page py-16 lg:py-20">
+      <div class="grid gap-12 lg:grid-cols-12">
+        <div class="lg:col-span-7">
+          <p class="text-eyebrow uppercase tracking-wider2 text-gold-dark">Bróker asociado</p>
+
+          <div class="mt-5 flex flex-wrap items-center gap-4">
+            <h1 class="font-display text-[38px] leading-tight sm:text-[46px]">
+              {broker.company_name}
+            </h1>
+            {broker.is_verified && (
+              <span class="badge border-gold bg-white text-gold-dark">
+                <svg class="h-3 w-3" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                  <path d="M2 6.5 L4.5 9 L10 3" stroke-linecap="square" />
+                </svg>
+                Luxus Verified
+              </span>
+            )}
+          </div>
+
+          {broker.bio && (
+            <p class="mt-7 max-w-2xl text-[16px] leading-relaxed text-ink-muted text-pretty">
+              {broker.bio}
+            </p>
+          )}
+        </div>
+
+        <aside class="lg:col-span-4 lg:col-start-9">
+          <div class="border border-stone bg-white p-7">
+            <h2 class="text-eyebrow uppercase tracking-luxus text-ink-muted">Datos de la empresa</h2>
+            <dl class="mt-5 space-y-4 text-[14px]">
+              {broker.ruc && (
+                <div>
+                  <dt class="text-[12px] uppercase tracking-luxus text-ink-muted">RUC</dt>
+                  <dd class="mt-1 font-mono text-[14px]">{broker.ruc}</dd>
+                </div>
+              )}
+              {broker.legal_rep && (
+                <div>
+                  <dt class="text-[12px] uppercase tracking-luxus text-ink-muted">Representante legal</dt>
+                  <dd class="mt-1">{broker.legal_rep}</dd>
+                </div>
+              )}
+              {broker.office_address && (
+                <div>
+                  <dt class="text-[12px] uppercase tracking-luxus text-ink-muted">Oficina</dt>
+                  <dd class="mt-1 leading-relaxed">{broker.office_address}</dd>
+                </div>
+              )}
+              {broker.website && (
+                <div>
+                  <dt class="text-[12px] uppercase tracking-luxus text-ink-muted">Sitio web</dt>
+                  <dd class="mt-1">
+                    <a href={broker.website} rel="noopener nofollow" target="_blank" class="link-underline break-all">
+                      {broker.website.replace(/^https?:\/\//, '')}
+                    </a>
+                  </dd>
+                </div>
+              )}
+              {broker.verified_at && (
+                <div>
+                  <dt class="text-[12px] uppercase tracking-luxus text-ink-muted">Verificado desde</dt>
+                  <dd class="mt-1">{formatDate(broker.verified_at)}</dd>
+                </div>
+              )}
+              <div>
+                <dt class="text-[12px] uppercase tracking-luxus text-ink-muted">Activos representados</dt>
+                <dd class="mt-1">{portfolio.length}</dd>
+              </div>
+            </dl>
+
+            <p class="mt-7 border-t border-stone pt-5 text-[12px] leading-relaxed text-ink-muted">
+              El distintivo «Luxus Verified» acredita que LUXUS PERÚ comprobó la
+              existencia y vigencia de la empresa ante SUNAT y SUNARP. No implica
+              respaldo sobre las operaciones que el bróker intermedia.
+            </p>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <section class="container-page py-16 lg:py-20" aria-labelledby="portfolio-title">
+    <h2 id="portfolio-title" class="font-display text-[30px]">Activos representados</h2>
+
+    {portfolio.length === 0 ? (
+      <p class="mt-8 text-[15px] text-ink-muted">
+        Este bróker no tiene activos publicados en este momento. Parte de su
+        cartera puede ser off-market.
+      </p>
+    ) : (
+      <div class="mt-12 grid gap-x-8 gap-y-14 sm:grid-cols-2 lg:grid-cols-3">
+        {portfolio.map((asset, index) => <AssetCard asset={asset} priority={index < 3} />)}
+      </div>
+    )}
+  </section>
+</PublicLayout>

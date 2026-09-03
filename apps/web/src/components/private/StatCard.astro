@@ -1,0 +1,30 @@
+---
+interface Props {
+  label: string;
+  value: string | number;
+  hint?: string;
+  tone?: 'default' | 'gold' | 'warning';
+  href?: string;
+}
+
+const { label, value, hint, tone = 'default', href } = Astro.props;
+const Tag = href ? 'a' : 'div';
+---
+
+<Tag
+  href={href}
+  class:list={[
+    'block border bg-white p-6',
+    tone === 'gold' ? 'border-gold' : tone === 'warning' ? 'border-red-300' : 'border-stone',
+    href && 'transition-colors hover:border-ink',
+  ]}
+>
+  <p class="text-eyebrow uppercase tracking-luxus text-ink-muted">{label}</p>
+  <p class:list={[
+    'mt-3 font-display text-[32px] leading-none',
+    tone === 'gold' ? 'text-gold-dark' : tone === 'warning' ? 'text-red-700' : 'text-ink',
+  ]}>
+    {value}
+  </p>
+  {hint && <p class="mt-2 text-[12.5px] leading-relaxed text-ink-muted">{hint}</p>}
+</Tag>

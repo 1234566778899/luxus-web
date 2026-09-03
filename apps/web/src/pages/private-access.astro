@@ -1,0 +1,79 @@
+---
+import PublicLayout from '../layouts/PublicLayout.astro';
+import PrivateAccessForm from '../components/islands/PrivateAccessForm.tsx';
+import { TRUST_PILLARS } from '@luxus/shared';
+---
+
+<PublicLayout
+  title="Private Access"
+  description="El acceso a LUXUS PERÚ se concede por invitación. Presente su solicitud como comprador, family office, propietario o bróker."
+>
+  <section class="border-b border-stone bg-ivory">
+    <div class="container-page py-16 lg:py-24">
+      <div class="max-w-2xl">
+        <p class="text-eyebrow uppercase tracking-wider2 text-gold-dark">Admisión</p>
+        <h1 class="mt-5 font-display text-[42px] leading-tight sm:text-[54px]">
+          El acceso se concede, no se compra
+        </h1>
+        <p class="mt-7 text-[16px] leading-relaxed text-ink-muted text-pretty">
+          LUXUS PERÚ es un mercado cerrado. Cada solicitud se evalúa de forma
+          individual atendiendo al perfil, al encaje con el inventario y a la
+          capacidad de completar la verificación de identidad y origen de fondos.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="container-page py-16 lg:py-20">
+    <div class="grid gap-14 lg:grid-cols-12">
+      <div class="lg:col-span-7">
+        <PrivateAccessForm client:load />
+      </div>
+
+      <aside class="lg:col-span-5">
+        <div class="sticky top-24 space-y-10">
+          <div>
+            <h2 class="font-display text-[24px]">Qué evaluamos</h2>
+            <ul class="mt-6 space-y-5 text-[14px] leading-relaxed text-ink-muted">
+              <li class="border-l-2 border-gold pl-5">
+                <strong class="block text-ink">Encaje con el inventario</strong>
+                Nuestro catálogo es limitado y concentrado en Perú.
+              </li>
+              <li class="border-l-2 border-stone-dark pl-5">
+                <strong class="block text-ink">Capacidad de verificación</strong>
+                El acceso a información reservada exige KYC completo.
+              </li>
+              <li class="border-l-2 border-stone-dark pl-5">
+                <strong class="block text-ink">Seriedad del mandato</strong>
+                En el lado vendedor, valoramos la situación registral del activo.
+              </li>
+            </ul>
+          </div>
+
+          <div class="border border-stone bg-white p-8">
+            <h2 class="text-eyebrow uppercase tracking-luxus text-ink-muted">Nuestros compromisos</h2>
+            <dl class="mt-5 space-y-4">
+              {TRUST_PILLARS.map((pillar) => (
+                <div>
+                  <dt class="font-display text-[17px] text-ink">{pillar.title}</dt>
+                  <dd class="mt-1 text-[13px] leading-relaxed text-ink-muted">{pillar.body}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+
+          <div class="border border-stone bg-ivory p-8">
+            <p class="text-[13px] leading-relaxed text-ink-muted">
+              Sus datos se tratan conforme a la Ley 29733 y su reglamento. Puede
+              ejercer sus derechos de acceso, rectificación, cancelación y
+              oposición escribiendo a{' '}
+              <a href="mailto:privacidad@luxusperu.com" class="link-underline text-ink">
+                privacidad@luxusperu.com
+              </a>.
+            </p>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </section>
+</PublicLayout>

@@ -1,0 +1,24 @@
+---
+import AuthLayout from '../../layouts/AuthLayout.astro';
+import LoginForm from '../../components/islands/LoginForm.tsx';
+
+// Ya autenticado: no tiene sentido volver a pedir credenciales.
+if (Astro.locals.session) {
+  return Astro.redirect(
+    Astro.locals.session.profile.role === 'admin' ? '/admin' : '/dashboard',
+    302,
+  );
+}
+
+const raw = Astro.url.searchParams.get('next') ?? '/dashboard';
+// Solo se admiten rutas internas: evita un redirect abierto tras el login.
+const next = raw.startsWith('/') && !raw.startsWith('//') ? raw : '/dashboard';
+---
+
+<AuthLayout
+  title="Acceder"
+  heading="Acceso privado"
+  subheading="Introduzca sus credenciales. La verificación en dos pasos es obligatoria en toda la plataforma."
+>
+  <LoginForm client:load next={next} />
+</AuthLayout>

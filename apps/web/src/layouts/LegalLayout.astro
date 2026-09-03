@@ -1,0 +1,62 @@
+---
+import PublicLayout from './PublicLayout.astro';
+
+interface Props {
+  title: string;
+  description?: string;
+  updated: string;
+  sections: { id: string; label: string }[];
+}
+
+const { title, description, updated, sections } = Astro.props;
+---
+
+<PublicLayout title={title} description={description}>
+  <section class="border-b border-stone bg-ivory">
+    <div class="container-page py-14 lg:py-20">
+      <p class="text-eyebrow uppercase tracking-wider2 text-gold-dark">Legal</p>
+      <h1 class="mt-5 max-w-3xl font-display text-[38px] leading-tight sm:text-[48px]">{title}</h1>
+      <p class="mt-6 text-[13px] uppercase tracking-luxus text-ink-muted">
+        Última actualización: {updated}
+      </p>
+    </div>
+  </section>
+
+  <div class="container-page py-16">
+    <div class="grid gap-14 lg:grid-cols-12">
+      <nav class="lg:col-span-3" aria-label="Índice del documento">
+        <div class="sticky top-24">
+          <p class="text-eyebrow uppercase tracking-luxus text-ink-muted">Contenido</p>
+          <ol class="mt-5 space-y-2.5">
+            {sections.map((section, index) => (
+              <li>
+                <a
+                  href={`#${section.id}`}
+                  class="link-underline block text-[13px] leading-snug text-ink-muted hover:text-ink"
+                >
+                  <span class="mr-2 text-ink-muted/60">{index + 1}.</span>
+                  {section.label}
+                </a>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </nav>
+
+      <div class="lg:col-span-8 lg:col-start-5">
+        <div
+          class="prose prose-neutral max-w-none
+                 prose-headings:font-display prose-headings:font-normal prose-headings:scroll-mt-28
+                 prose-h2:mt-14 prose-h2:text-[26px]
+                 prose-h3:mt-9 prose-h3:text-[19px]
+                 prose-p:text-[15.5px] prose-p:leading-[1.8] prose-p:text-ink/[85%]
+                 prose-li:text-[15.5px] prose-li:leading-[1.75]
+                 prose-strong:text-ink
+                 prose-a:text-ink prose-a:decoration-gold prose-a:underline-offset-4"
+        >
+          <slot />
+        </div>
+      </div>
+    </div>
+  </div>
+</PublicLayout>
