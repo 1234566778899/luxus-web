@@ -29,7 +29,12 @@ const session = Astro.locals.session;
       category={headerCategory}
       searchValue={headerSearchValue}
     />
-    <main id="main" class:list={['flex-1', transparentHeader && '-mt-[72px]']}>
+    {/* El header transparente mide 72px en móvil (solo la fila de marca +
+        acceso) y 124px desde `lg:` (suma la fila de navegación/buscador,
+        que en móvil vive en el menú aparte) — el offset negativo tiene que
+        seguirle el paso en cada punto de quiebre para que el hero arranque
+        justo debajo, sin hueco ni superposición. */}
+    <main id="main" class:list={['flex-1', transparentHeader && '-mt-[72px] lg:-mt-[124px]']}>
       <slot />
     </main>
     <SiteFooter />

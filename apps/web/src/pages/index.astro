@@ -175,7 +175,12 @@ const jsonLd = {
     // que Astro solo renderiza cuando hay más de un activo destacado.
     const root = document.getElementById('hero-carousel');
     const dataEl = document.getElementById('hero-carousel-data');
-    if (root && dataEl) {
+    // Guarda contra doble inicialización: en dev, Vite a veces reinyecta este
+    // módulo tras varias recargas en caliente del mismo archivo, y dos
+    // instancias del script terminan pisándose el índice y el temporizador
+    // entre sí (síntoma: varias imágenes con opacidad plena a la vez).
+    if (root && dataEl && root.dataset.carouselInit !== 'true') {
+      root.dataset.carouselInit = 'true';
       const slides: { image: string; title: string; location: string; href: string }[] =
         JSON.parse(dataEl.textContent ?? '[]');
 

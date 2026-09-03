@@ -34,65 +34,21 @@ const isVerified = session?.profile.kyc_status === 'approved';
         // arriba —donde vive este encabezado— a merced de lo clara que sea
         // la foto ahí (ver, p. ej., ventanas o cielo claro detrás del nav).
         // Se oscurece aquí, en el propio encabezado, para que el contraste
-        // quede garantizado sin importar la página ni la foto: un degradado
-        // dedicado en vez de depender del scrim de cada hero. El hairline
-        // blanco de abajo imita el borde que separa las dos filas del
-        // encabezado de un marketplace de lujo de referencia, que enmarca el
-        // encabezado con un hairline arriba y otro abajo.
-        'border-t border-b border-white/20 bg-gradient-to-b from-ink-deep/80 via-ink-deep/40 to-transparent text-white data-[scrolled=true]:border-t-transparent data-[scrolled=true]:border-b-stone data-[scrolled=true]:bg-none data-[scrolled=true]:bg-white data-[scrolled=true]:text-ink'
+        // quede garantizado sin importar la página ni la foto: un marketplace
+        // de lujo de referencia resuelve esto curando fotos ya oscuras para
+        // el hero (comprobado inspeccionando su CSS: su encabezado no lleva
+        // ningún overlay propio), algo que no podemos asumir aquí porque las
+        // fotos de portada son las que suben los propios vendedores.
+        'border-b border-white/20 bg-gradient-to-b from-ink-deep/80 via-ink-deep/40 to-transparent text-white data-[scrolled=true]:border-b-stone data-[scrolled=true]:bg-none data-[scrolled=true]:bg-white data-[scrolled=true]:text-ink'
       : 'border-b border-stone bg-white text-ink',
   ]}
   id="site-header"
 >
+  <!-- Fila 1: marca + sesión/acceso — como en la referencia, el login y el
+       CTA de solicitud viven arriba, separados de la navegación. -->
   <div class="container-page">
     <div class="flex h-[72px] items-center justify-between gap-6">
       <Logo variant={transparent ? 'light' : 'dark'} size="md" reactive={transparent} />
-
-      {category ? (
-        <div class="hidden flex-1 justify-center px-6 lg:flex">
-          <HeaderSearch
-            client:load
-            category={category}
-            initialValue={searchValue}
-            light={transparent}
-          />
-        </div>
-      ) : (
-        <nav class="hidden lg:block" aria-label="Categorías">
-          <ul class="flex items-center gap-7">
-            {CATEGORY_ORDER.map((cat) => {
-              const meta = CATEGORY_META[cat];
-              const href = `/collection/${cat}`;
-              const active = path.startsWith(href);
-              return (
-                <li>
-                  <a
-                    href={href}
-                    aria-current={active ? 'page' : undefined}
-                    class:list={[
-                      'link-underline text-[13.5px] transition-opacity',
-                      active ? 'opacity-100' : 'opacity-80 hover:opacity-100',
-                    ]}
-                  >
-                    {meta.label}
-                  </a>
-                </li>
-              );
-            })}
-            <li>
-              <a
-                href="/intelligence"
-                class:list={[
-                  'link-underline text-[13.5px] transition-opacity',
-                  path.startsWith('/intelligence') ? 'opacity-100' : 'opacity-80 hover:opacity-100',
-                ]}
-              >
-                Intelligence
-              </a>
-            </li>
-          </ul>
-        </nav>
-      )}
 
       <div class="flex items-center gap-4">
         {session ? (
@@ -145,6 +101,66 @@ const isVerified = session?.profile.kyc_status === 'approved';
             <path d="M3 6h18M3 12h18M3 18h18" stroke-linecap="square" />
           </svg>
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fila 2: navegación por categorías o buscador. Un hairline propio
+       arriba y abajo la enmarca — visible solo en escritorio, que es donde
+       esta segunda fila existe (en móvil la navegación vive en el menú). -->
+  <div
+    class:list={[
+      'hidden border-t lg:block',
+      transparent
+        ? 'border-white/20 group-data-[scrolled=true]/header:border-stone'
+        : 'border-stone',
+    ]}
+  >
+    <div class="container-page">
+      <div class="flex h-[52px] items-center">
+        {category ? (
+          <HeaderSearch
+            client:load
+            category={category}
+            initialValue={searchValue}
+            light={transparent}
+          />
+        ) : (
+          <nav aria-label="Categorías">
+            <ul class="flex items-center gap-7">
+              {CATEGORY_ORDER.map((cat) => {
+                const meta = CATEGORY_META[cat];
+                const href = `/collection/${cat}`;
+                const active = path.startsWith(href);
+                return (
+                  <li>
+                    <a
+                      href={href}
+                      aria-current={active ? 'page' : undefined}
+                      class:list={[
+                        'link-underline text-[13.5px] transition-opacity',
+                        active ? 'opacity-100' : 'opacity-80 hover:opacity-100',
+                      ]}
+                    >
+                      {meta.label}
+                    </a>
+                  </li>
+                );
+              })}
+              <li>
+                <a
+                  href="/intelligence"
+                  class:list={[
+                    'link-underline text-[13.5px] transition-opacity',
+                    path.startsWith('/intelligence') ? 'opacity-100' : 'opacity-80 hover:opacity-100',
+                  ]}
+                >
+                  Intelligence
+                </a>
+              </li>
+            </ul>
+          </nav>
+        )}
       </div>
     </div>
   </div>
