@@ -9,6 +9,7 @@ import {
   fetchCategoryCounts, fetchFeaturedAssets, fetchLatestAssets, fetchPublishedArticles,
 } from '../lib/queries';
 import { coverUrl } from '../lib/media';
+import { curatedCategoryImage, curatedImage } from '../lib/placeholderImages';
 
 const supabase = Astro.locals.supabase;
 
@@ -24,13 +25,13 @@ const [featured, latest, counts, articles] = await Promise.all([
 // la misma ficha en las dos secciones.
 const heroPool = featured.length > 0 ? featured : latest;
 const heroSlides = heroPool.slice(0, 3).map((asset) => ({
-  image: coverUrl(asset.asset_media, asset.slug),
+  image: coverUrl(asset.asset_media, { category: asset.category, seed: asset.slug }),
   title: asset.title,
   location: formatApproximateLocation(asset),
   href: `/asset/${asset.slug}`,
 }));
 const hero = heroSlides[0] ?? null;
-const heroImage = hero?.image ?? 'https://picsum.photos/seed/luxus-peru-hero/2400/1400';
+const heroImage = hero?.image ?? curatedImage('real-estate', 'luxus-peru-hero', 0, 2400);
 
 const featuredGrid = featured.slice(heroSlides.length, heroSlides.length + 3);
 const offMarketCount = Object.values(counts).reduce((a, b) => a + b, 0);
@@ -237,7 +238,7 @@ const jsonLd = {
         {CATEGORY_ORDER.map((category) => {
           const meta = CATEGORY_META[category];
           const count = counts[category] ?? 0;
-          const image = `https://picsum.photos/seed/luxus-collection-${category}/800/1000`;
+          const image = curatedCategoryImage(category, 900);
           return (
             <li>
               <a href={`/collection/${category}`} class="group block">
@@ -314,7 +315,7 @@ const jsonLd = {
   <!-- ═══════════════════════════════════════════ PRIVATE MARKET -->
   <section class="relative overflow-hidden bg-ink text-white" aria-labelledby="private-market-title">
     <img
-      src="https://picsum.photos/seed/luxus-private-market/2000/1200"
+      src={curatedImage('real-estate', 'luxus-private-market', 3, 2000)}
       alt=""
       aria-hidden="true"
       loading="lazy"

@@ -1,6 +1,7 @@
 ---
 import type { AssetCategory } from '@luxus/shared';
 import { PERU_REGIONS, PRICE_BANDS } from '@luxus/shared';
+import { curatedCategoryImage } from '../../lib/placeholderImages';
 
 interface Props {
   category: AssetCategory;
@@ -13,9 +14,9 @@ interface Props {
 
 const { category, title, tagline, total, currentRegion, currentBand } = Astro.props;
 
-// Foto de portada estable por categoría — placeholder determinista mientras
-// no exista producción fotográfica propia por colección.
-const heroImage = `https://picsum.photos/seed/luxus-collection-${category}/2000/1000`;
+// Foto de portada estable por categoría — placeholder determinista acorde al
+// tipo de activo mientras no exista producción fotográfica propia.
+const heroImage = curatedCategoryImage(category, 2000);
 ---
 
 <section class="relative overflow-hidden bg-ink" aria-labelledby="collection-hero-title">

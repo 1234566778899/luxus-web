@@ -23,7 +23,7 @@ interface Props {
 const { asset, priority = false, size = 'default', sharedTransition = false } = Astro.props;
 const coverTransitionName = sharedTransition ? `asset-cover-${asset.slug}` : undefined;
 
-const cover = coverUrl(asset.asset_media, asset.slug);
+const cover = coverUrl(asset.asset_media, { category: asset.category, seed: asset.slug });
 const location = formatApproximateLocation(asset);
 const price = formatPriceRange(asset);
 const category = CATEGORY_META[asset.category];

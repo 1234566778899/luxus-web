@@ -1,6 +1,7 @@
 ---
 import PublicLayout from '../layouts/PublicLayout.astro';
 import { CATEGORY_META, CATEGORY_ORDER } from '@luxus/shared';
+import { curatedImage } from '../lib/placeholderImages';
 
 // Requisitos documentales por categoría, en el mismo orden que el checklist
 // que ejecuta el Admin al verificar. Publicarlos aquí evita solicitudes que no
@@ -62,7 +63,7 @@ const REQUIREMENTS: Record<string, { authority: string; items: string[] }> = {
 >
   <section class="relative overflow-hidden bg-ink text-white">
     <img
-      src="https://picsum.photos/seed/luxus-sell/2000/1100"
+      src={curatedImage('real-estate', 'luxus-sell', 5, 2000)}
       alt=""
       aria-hidden="true"
       class="absolute inset-0 h-full w-full object-cover opacity-30"

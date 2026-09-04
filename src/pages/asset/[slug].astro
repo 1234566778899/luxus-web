@@ -32,7 +32,7 @@ const location = formatApproximateLocation(asset);
 const gallery = publicGallery(asset.asset_media);
 const galleryImages = gallery.map((m) => ({
   id: m.id,
-  url: mediaUrl(m),
+  url: mediaUrl(m, { category: asset.category, seed: asset.slug }),
   alt: m.alt_text ?? `${asset.title} — ${location}`,
   caption: m.caption,
 }));
