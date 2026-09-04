@@ -30,9 +30,13 @@ const { asset, broker, privateDetails, related } = result;
 const meta = CATEGORY_META[asset.category];
 const location = formatApproximateLocation(asset);
 const gallery = publicGallery(asset.asset_media);
-const galleryImages = gallery.map((m) => ({
+// Solo la primera foto (el hero de AssetGallery) se pinta grande; las demás
+// aparecen como miniaturas de sidebar en la carga inicial (el resto de la
+// galería solo se pide al abrir el visor). Pedir las 5 a 1600px de ancho
+// era peso de miniatura pagado por foto de portada.
+const galleryImages = gallery.map((m, i) => ({
   id: m.id,
-  url: mediaUrl(m, { category: asset.category, seed: asset.slug }),
+  url: mediaUrl(m, { category: asset.category, seed: asset.slug }, i === 0 ? 1800 : 700),
   alt: m.alt_text ?? `${asset.title} — ${location}`,
   caption: m.caption,
 }));

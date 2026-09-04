@@ -90,6 +90,14 @@ const structured = jsonLd
     <link rel="apple-touch-icon" href="/logo-luxus.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Antes vivía como @import en global.css: eso obliga al navegador a
+         parsear el CSS entero antes de descubrir que necesita esta hoja,
+         añadiendo un round-trip en serie a cada navegación. Como <link> en
+         el <head>, el preloader del navegador la pide en paralelo. -->
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600&display=swap"
+    />
 
     {!noindex && <link rel="sitemap" href="/sitemap.xml" />}
 

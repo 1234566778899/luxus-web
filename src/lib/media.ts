@@ -27,21 +27,29 @@ function resolvePath(media: Pick<AssetMediaRow, 'bucket' | 'storage_path'>): str
 export function mediaUrl(
   media: Pick<AssetMediaRow, 'bucket' | 'storage_path'> & { sort_order?: number },
   context?: MediaContext,
+  width?: number,
 ): string {
   const url = resolvePath(media);
   if (context && isPlaceholderUrl(url)) {
-    return curatedImage(context.category, context.seed, media.sort_order ?? 0);
+    return curatedImage(context.category, context.seed, media.sort_order ?? 0, width);
   }
   return url;
 }
 
+/**
+ * `width` es solo para el placeholder de Unsplash — le pasamos el ancho real
+ * al que se va a pintar la imagen (una miniatura de grid no necesita el
+ * mismo ancho que un hero a todo el viewport) en vez del default genérico.
+ * Una foto real de Supabase Storage se sirve tal cual: no hay transform.
+ */
 export function coverUrl(
   media: (Pick<AssetMediaRow, 'bucket' | 'storage_path' | 'is_public'> & { sort_order?: number })[] | null | undefined,
   context?: MediaContext,
+  width?: number,
 ): string {
   const first = (media ?? []).find((m) => m.is_public);
-  if (first) return mediaUrl(first, context);
-  if (context) return curatedImage(context.category, context.seed, 0);
+  if (first) return mediaUrl(first, context, width);
+  if (context) return curatedImage(context.category, context.seed, 0, width);
   return 'https://picsum.photos/seed/luxus/1600/1200';
 }
 

@@ -23,7 +23,10 @@ interface Props {
 const { asset, priority = false, size = 'default', sharedTransition = false } = Astro.props;
 const coverTransitionName = sharedTransition ? `asset-cover-${asset.slug}` : undefined;
 
-const cover = coverUrl(asset.asset_media, { category: asset.category, seed: asset.slug });
+// La tarjeta nunca ocupa más de ~450px en pantalla (grid de 3-4 columnas),
+// así que pedir el placeholder a 1600px era 3-4x más peso del que se
+// pinta. 900px cubre con margen hasta retina 2x en la columna más ancha.
+const cover = coverUrl(asset.asset_media, { category: asset.category, seed: asset.slug }, 900);
 const location = formatApproximateLocation(asset);
 const price = formatPriceRange(asset);
 const category = CATEGORY_META[asset.category];
@@ -52,8 +55,8 @@ const badgeClass =
         loading={priority ? 'eager' : 'lazy'}
         fetchpriority={priority ? 'high' : 'auto'}
         decoding="async"
-        width={1600}
-        height={1200}
+        width={900}
+        height={675}
         style={coverTransitionName ? `view-transition-name:${coverTransitionName}` : undefined}
         class="h-full w-full object-cover transition-transform duration-[900ms] ease-luxus group-hover:scale-[1.04]"
       />
