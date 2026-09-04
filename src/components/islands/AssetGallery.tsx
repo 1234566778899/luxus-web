@@ -10,13 +10,18 @@ export interface GalleryImage {
 interface Props {
   images: GalleryImage[];
   title: string;
+  /**
+   * view-transition-name para la imagen principal: la empareja con la
+   * portada de la ficha para que "viaje" al navegar al detalle.
+   */
+  heroTransitionName?: string;
 }
 
 /**
  * Galería inmersiva: mosaico + visor a pantalla completa con teclado.
  * Solo recibe imágenes públicas; la media reservada la sirve la API firmada.
  */
-export default function AssetGallery({ images, title }: Props) {
+export default function AssetGallery({ images, title, heroTransitionName }: Props) {
   const [index, setIndex] = useState<number | null>(null);
   const open = index !== null;
 
@@ -64,6 +69,7 @@ export default function AssetGallery({ images, title }: Props) {
             alt={hero!.alt}
             fetchPriority="high"
             decoding="async"
+            style={heroTransitionName ? { viewTransitionName: heroTransitionName } : undefined}
             className="h-full w-full object-cover transition-transform duration-[900ms] ease-luxus group-hover:scale-[1.03]"
           />
           <span className="absolute bottom-4 right-4 inline-flex items-center gap-2 bg-white/95 px-3.5 py-2 text-[10px] uppercase tracking-luxus text-ink shadow-sm backdrop-blur-sm">

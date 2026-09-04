@@ -1,5 +1,6 @@
 ---
 import '../styles/global.css';
+import { ViewTransitions } from 'astro:transitions';
 import { BRAND } from '@luxus/shared';
 import { SITE_URL } from '../lib/env';
 
@@ -93,6 +94,11 @@ const structured = jsonLd
     {!noindex && <link rel="sitemap" href="/sitemap.xml" />}
 
     <script type="application/ld+json" set:html={JSON.stringify(structured)} />
+
+    <!-- Navegación con View Transitions: transición suave entre páginas y
+         "viaje" de la portada del activo desde la ficha al detalle (los
+         elementos emparejados comparten transition:name). -->
+    <ViewTransitions />
   </head>
 
   <body class={bodyClass}>

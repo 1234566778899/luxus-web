@@ -12,9 +12,16 @@ interface Props {
   /** La primera fila de la portada se carga con prioridad. */
   priority?: boolean;
   size?: 'default' | 'large';
+  /**
+   * Activa el "viaje" de la portada hacia la página de detalle. Solo debe
+   * pasarse cuando el activo aparece una única vez en la página: dos
+   * elementos con el mismo view-transition-name cancelan la animación.
+   */
+  sharedTransition?: boolean;
 }
 
-const { asset, priority = false, size = 'default' } = Astro.props;
+const { asset, priority = false, size = 'default', sharedTransition = false } = Astro.props;
+const coverTransitionName = sharedTransition ? `asset-cover-${asset.slug}` : undefined;
 
 const cover = coverUrl(asset.asset_media, asset.slug);
 const location = formatApproximateLocation(asset);
@@ -47,6 +54,7 @@ const badgeClass =
         decoding="async"
         width={1600}
         height={1200}
+        style={coverTransitionName ? `view-transition-name:${coverTransitionName}` : undefined}
         class="h-full w-full object-cover transition-transform duration-[900ms] ease-luxus group-hover:scale-[1.04]"
       />
     </a>

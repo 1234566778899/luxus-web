@@ -281,7 +281,7 @@ const jsonLd = {
 
       <div class="mt-14 grid gap-x-8 gap-y-14 sm:grid-cols-2 lg:grid-cols-3">
         {featuredGrid.map((asset, index) => (
-          <AssetCard asset={asset} priority={index === 0} />
+          <AssetCard asset={asset} priority={index === 0} sharedTransition />
         ))}
       </div>
     </section>
