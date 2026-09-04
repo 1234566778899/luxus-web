@@ -8,7 +8,7 @@ const env = import.meta.env;
 function required(name: string, value: string | undefined): string {
   if (!value) {
     throw new Error(
-      `[luxus:web] Falta la variable ${name}. Copie apps/web/.env.example a apps/web/.env.`,
+      `[luxus:web] Falta la variable ${name}. Copie .env.example a .env.`,
     );
   }
   return value;

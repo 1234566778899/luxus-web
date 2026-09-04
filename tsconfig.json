@@ -5,10 +5,12 @@
     "jsxImportSource": "react",
     "strict": true,
     "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "verbatimModuleSyntax": false,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@luxus/shared": ["src/shared/index.ts"]
     }
   },
   "include": [".astro/types.d.ts", "**/*.ts", "**/*.tsx", "**/*.astro"],

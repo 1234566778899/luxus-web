@@ -22,10 +22,6 @@ export default defineConfig({
   // algo que la integración estática no puede hacer.
   integrations: [react(), tailwind({ applyBaseStyles: false })],
 
-  vite: {
-    ssr: { noExternal: ['@luxus/shared'] },
-  },
-
   server: { port: 4321 },
 
   image: {
