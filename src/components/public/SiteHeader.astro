@@ -211,23 +211,37 @@ const isHome = path === '/';
 </header>
 
 <script>
-  const header = document.getElementById('site-header');
-  const toggle = document.getElementById('menu-toggle');
-  const menu = document.getElementById('mobile-menu');
+  // Con View Transitions la navegación entre páginas no recarga el
+  // documento, así que un <script> normal solo corre una vez, en la
+  // primera carga. `astro:page-load` se dispara en esa primera carga y en
+  // cada navegación posterior (incluido atrás/adelante), así que es donde
+  // hay que reenganchar el header — si no, al entrar a una colección desde
+  // otra página el listener de scroll sigue apuntando al <header> viejo,
+  // que View Transitions ya reemplazó, y el fondo nunca cambia de color.
+  document.addEventListener('astro:page-load', () => {
+    const header = document.getElementById('site-header');
+    const toggle = document.getElementById('menu-toggle');
+    const menu = document.getElementById('mobile-menu');
 
-  if (header?.dataset.transparent === 'true') {
-    const onScroll = () => {
-      header.dataset.scrolled = window.scrollY > 40 ? 'true' : 'false';
-    };
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-  }
+    // `window` sí sobrevive entre navegaciones: se asigna en vez de sumar
+    // con addEventListener para no acumular un listener más por cada
+    // página visitada.
+    if (header?.dataset.transparent === 'true') {
+      const onScroll = () => {
+        header.dataset.scrolled = window.scrollY > 40 ? 'true' : 'false';
+      };
+      onScroll();
+      window.onscroll = onScroll;
+    } else {
+      window.onscroll = null;
+    }
 
-  toggle?.addEventListener('click', () => {
-    if (!menu) return;
-    const open = menu.hidden;
-    menu.hidden = !open;
-    toggle.setAttribute('aria-expanded', String(open));
-    toggle.setAttribute('aria-label', open ? 'Cerrar menú' : 'Abrir menú');
+    toggle?.addEventListener('click', () => {
+      if (!menu) return;
+      const open = menu.hidden;
+      menu.hidden = !open;
+      toggle.setAttribute('aria-expanded', String(open));
+      toggle.setAttribute('aria-label', open ? 'Cerrar menú' : 'Abrir menú');
+    });
   });
 </script>
